@@ -27,3 +27,12 @@
 *.exe
 *.out
 *.app
+
+*.a
+tags
+cscope.*
+*.yuv
+*.wav
+*.h264
+*_bk
+.*
