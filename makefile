@@ -111,6 +111,7 @@ LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
                     ./src/avmGridChannel.cpp\
                     ./src/AVMixer2BizsMessage.cpp\
                     ./src/rgridproto.cpp\
+                    ./src/cmSession.cpp\
 					./src/main.cpp
                    
 
@@ -119,7 +120,7 @@ LIBOBJS 		= $(addsuffix .o, $(basename $(SRCFILES)))
 LIBHEADFILES 	= $(addsuffix .h, $(basename $(SRCFILES))) 
 
 # define targets of the build
-TARGET			= pushrtmp 
+TARGET			= codecmixer 
 TARGET_DIR		= ./bin
 #TARGET_INCLUDES = ./include
 #LIB				= libmycommon.a

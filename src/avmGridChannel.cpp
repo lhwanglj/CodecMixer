@@ -171,10 +171,7 @@ namespace MediaCloud
         int ihpspOutSize=uiRecvPackLen;
  
         MediaInfo mediainfo;
-        
         m_streamFrame.ParseDownloadFrame((unsigned char*)pRecvPack, ihpspOutSize, &mediainfo, this);
-
-
     }
 
     int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
@@ -183,9 +180,11 @@ namespace MediaCloud
         PT_USERJOINMSG pExist = m_mapUserJoinMsg[pUserJoinMsg->sessionID];
         if(NULL == pExist)
             m_mapUserJoinMsg[pUserJoinMsg->sessionID]=pUserJoinMsg;
-       
-        //merge two list 
-        pExist->lstUser.merge(pUserJoinMsg->lstUser, ptrCCNUserCmp); 
+        else 
+        {
+            //merge two list 
+            pExist->lstUser.merge(pUserJoinMsg->lstUser, ptrCCNUserCmp); 
+        }
         return pExist->lstUser.size();
     }
 
