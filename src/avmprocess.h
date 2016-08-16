@@ -38,7 +38,6 @@ namespace MediaCloud
 
     typedef std::list<PT_AUDIO_DEC_DATA> LST_PT_AUDIO_DEC_DATA;
     typedef LST_PT_AUDIO_DEC_DATA::iterator ITR_LST_PT_AUDIO_DEC_DATA;    
-
     
     class CAVMProcess
     {
