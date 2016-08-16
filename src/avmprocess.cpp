@@ -319,6 +319,7 @@ namespace MediaCloud
         }
     }
 
+/*
     void CAVMProcess::MixVideoFrameAndSend(uint32_t usTSFound)
     {
         //get all audio frame
@@ -454,7 +455,9 @@ namespace MediaCloud
         }
     }
 
-    int CAVMProcess::GetAudioTimeStamp(LST_UINT32 lstTS)
+*/
+
+/*    int CAVMProcess::GetAudioTimeStamp(LST_UINT32 lstTS)
     {
         LST_UINT32 lstTimeStamp;
         CAVMNetPeer* pFirstPeer = m_pPeers[0];
@@ -509,7 +512,7 @@ namespace MediaCloud
         } 
         return lstTS.size();    
     }
-
+*/
 
     int  CAVMProcess::MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame)
     {
@@ -677,6 +680,7 @@ namespace MediaCloud
         lstADFMinor.end();
     }
 
+/*
     void CAVMProcess::MixAudioFrameAndSend(uint32_t usTSFound)
     {
         //get all audio frame
@@ -738,7 +742,7 @@ namespace MediaCloud
         }
         lstAudioNetFrame.clear();
     }
-
+*/
     bool CAVMProcess::SendVideo2Rtmp(VideoEncodedData * pVEData, PT_VIDEONETFRAME pVideoNetFrame)
     {
         bool bRtn=false;

@@ -189,14 +189,14 @@ namespace MediaCloud
         bool InsertAudioDecFrame(PT_AUDIONETFRAME pAudioNetFrame);
         bool InsertVideoDecFrame(PT_VIDEONETFRAME pVideoNetFrame);
  
-        void DecodeAudioData();
-        void DecodeVideoData();
+       // void DecodeAudioData();
+//        void DecodeVideoData();
 
-        int GetAllAudioTimeStampOfPacket(LST_UINT32& lstuint);
-        int GetAllVideoTimeStampOfPacket(LST_UINT32& lstuint);
+//        int GetAllAudioTimeStampOfPacket(LST_UINT32& lstuint);
+//        int GetAllVideoTimeStampOfPacket(LST_UINT32& lstuint);
         
-        PT_AUDIONETFRAME GetAudioDecFrameAndPop(uint32_t uiTimeStamp);
-        PT_VIDEONETFRAME GetVideoDecFrameAndPop(uint32_t uiTimeStamp);
+//        PT_AUDIONETFRAME GetAudioDecFrameAndPop(uint32_t uiTimeStamp);
+//        PT_VIDEONETFRAME GetVideoDecFrameAndPop(uint32_t uiTimeStamp);
         
         bool AudioTimeStampIsExist(uint32_t uiTimeStamp);        
         bool VideoTimeStampIsExist(uint32_t uiTimeStamp);

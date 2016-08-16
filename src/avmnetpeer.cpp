@@ -605,6 +605,7 @@ namespace MediaCloud
         return bRtn;
     }
 
+/*
 
     void CAVMNetPeer::DecodeAudioData()
     {
@@ -616,7 +617,7 @@ namespace MediaCloud
            // m_fqAudioNetFrame.LoopFrames(); 
     
 
-        /*    ITR_MAP_PT_AUDIONETFRAME itr = m_mapAudioNetFrame.begin();
+            ITR_MAP_PT_AUDIONETFRAME itr = m_mapAudioNetFrame.begin();
             PT_AUDIONETFRAME pAudioNetFrame = NULL;
             while(itr != m_mapAudioNetFrame.end() )
             {
@@ -637,15 +638,16 @@ namespace MediaCloud
                 itr++;
             }
             m_mapAudioNetFrame.clear();
-            */
+           
         }
     }
+*/
 
+/*
     void CAVMNetPeer::DecodeVideoData()
     {
         ScopedCriticalSection cs(m_csVideoNetFrame);
 
-/*
         FrameDesc frameDesc;
         frameDesc.iFrameType.h264 = kVideoUnknowFrame;
         frameDesc.iPreFramesMiss = false;
@@ -686,14 +688,14 @@ namespace MediaCloud
             }
             m_mapVideoDecFrame.clear();
         }
-*/
 
     }
 
+*/
+/*
     int CAVMNetPeer::GetAllAudioTimeStampOfPacket(LST_UINT32& lstuint)
     {
         int iRtn=0;
-/*
         ScopedCriticalSection cs(m_csAudioDecFrame); 
         ITR_MAP_PT_AUDIONETFRAME itr = m_mapAudioDecFrame.begin();
         while(itr != m_mapAudioDecFrame.end())
@@ -706,14 +708,16 @@ namespace MediaCloud
 
             itr++;
         }
-*/
         return iRtn; 
     }
 
+*/
+
+
+/*
     int CAVMNetPeer::GetAllVideoTimeStampOfPacket(LST_UINT32& lstuint)
     {
         int iRtn=0;
-/*
         ScopedCriticalSection cs(m_csVideoDecFrame); 
 
         ITR_MAP_PT_VIDEONETFRAME itr = m_mapVideoDecFrame.begin();
@@ -726,34 +730,37 @@ namespace MediaCloud
             }
             itr++;
         }
-*/
         return iRtn; 
     }
 
+*/
+
+/*
     PT_AUDIONETFRAME CAVMNetPeer::GetAudioDecFrameAndPop(uint32_t uiTimeStamp)
     {
         PT_AUDIONETFRAME pAudioDecFrame = NULL;
-   /*     ITR_MAP_PT_AUDIONETFRAME itr = m_mapAudioDecFrame.find(uiTimeStamp);
+        ITR_MAP_PT_AUDIONETFRAME itr = m_mapAudioDecFrame.find(uiTimeStamp);
         if(itr==m_mapAudioDecFrame.end())
             return pAudioDecFrame;
         pAudioDecFrame=itr->second;
         m_mapAudioDecFrame.erase(itr);
-*/
         return pAudioDecFrame;
     }
-    
+*/
+
+/*
     PT_VIDEONETFRAME CAVMNetPeer::GetVideoDecFrameAndPop(uint32_t uiTimeStamp)
     {
         PT_VIDEONETFRAME pVideoDecFrame=NULL;
-/*        ITR_MAP_PT_VIDEONETFRAME itr=m_mapVideoDecFrame.find(uiTimeStamp);
+        ITR_MAP_PT_VIDEONETFRAME itr=m_mapVideoDecFrame.find(uiTimeStamp);
         if(itr==m_mapVideoDecFrame.end())
             return pVideoDecFrame;
         pVideoDecFrame=itr->second;
         m_mapVideoDecFrame.erase(itr);
-*/
         return pVideoDecFrame;
     }
 
+*/
   
     bool CAVMNetPeer::AudioTimeStampIsExist(uint32_t uiTimeStamp)
     {
@@ -771,6 +778,8 @@ namespace MediaCloud
 
     PT_AUDIONETFRAME CAVMNetPeer::GetFirstAudioDecFrame()
     {
+        ScopedCriticalSection cs(m_csAudioDecFrame);
+        
         PT_AUDIONETFRAME pAudioNetFrame=NULL;
         uint16_t usFrameID=m_fqAudioDecFrame.FrameIdBegin();
         auto* pslot = m_fqAudioDecFrame.At(usFrameID); 
@@ -784,6 +793,8 @@ namespace MediaCloud
 
     PT_AUDIONETFRAME CAVMNetPeer::ExistTheSameAudioDecFrame(PT_AUDIONETFRAME pAudioNetFrame)
     {
+        ScopedCriticalSection cs(m_csAudioDecFrame);
+        
         PT_AUDIONETFRAME pAudioFoundNetFrame=NULL;
         T_FOUNDFRAMETAG tag;
         tag.pThis = this;
@@ -799,6 +810,8 @@ namespace MediaCloud
 
     PT_AUDIONETFRAME CAVMNetPeer::ExistTheSameAudioDecFrameAndPop(PT_AUDIONETFRAME pAudioNetFrame)
     {
+        ScopedCriticalSection cs(m_csAudioDecFrame);
+        
         PT_AUDIONETFRAME pAudioFoundNetFrame=NULL;
         T_FOUNDFRAMETAG tag;
         tag.pThis = this;
@@ -817,12 +830,16 @@ namespace MediaCloud
 
     bool CAVMNetPeer::RemoveAudioDecFrame(PT_AUDIONETFRAME pAudioNetFrame)
     {
+        ScopedCriticalSection cs(m_csAudioDecFrame);
+        
         m_fqAudioDecFrame.Remove(pAudioNetFrame->pMediaInfo->frameId, NULL, NULL); 
         ReleaseAudioNetFrame(pAudioNetFrame);
     }
 
     PT_VIDEONETFRAME CAVMNetPeer::GetFirstVideoDecFrame()
     {
+        ScopedCriticalSection cs(m_csVideoDecFrame);
+            
         PT_VIDEONETFRAME pvnf=NULL;
         uint16_t usFID=m_fqVideoDecFrame.FrameIdBegin();
         auto* pslot=m_fqVideoDecFrame.At(usFID);
@@ -836,6 +853,8 @@ namespace MediaCloud
 
     PT_VIDEONETFRAME CAVMNetPeer::ExistTheSameVideoDecFrame(PT_VIDEONETFRAME pVideoNetFrame)
     {
+        ScopedCriticalSection cs(m_csVideoDecFrame);
+            
         PT_VIDEONETFRAME pVideoFoundNetFrame=NULL;
         T_FOUNDFRAMETAG tag;
         tag.pThis=this;
@@ -850,6 +869,8 @@ namespace MediaCloud
 
     PT_VIDEONETFRAME CAVMNetPeer::ExistTheSameVideoDecFrameAndPop(PT_VIDEONETFRAME pVideoNetFrame)
     {
+        ScopedCriticalSection cs(m_csVideoDecFrame);
+            
         PT_VIDEONETFRAME pVideoFoundNetFrame=NULL;
         T_FOUNDFRAMETAG tag;
         tag.pThis=this;
@@ -868,6 +889,8 @@ namespace MediaCloud
 
     bool CAVMNetPeer::RemoveVideoDecFrame(PT_VIDEONETFRAME pVideoDecFrame)
     {
+        ScopedCriticalSection cs(m_csVideoDecFrame);
+            
         m_fqVideoDecFrame.Remove(pVideoDecFrame->pMediaInfo->frameId, NULL, NULL);
         ReleaseVideoNetFrame(pVideoDecFrame);
     }
