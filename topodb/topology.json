@@ -1,0 +1,169 @@
+{
+    "version": 1,
+    "stream-max-age": 3,
+    "client-bean-max-age": 3,
+    "routers": [
+        {
+            "name": "RCNBJTEST01",
+            "type": "core",
+            "rsps": [
+                {
+                    "sink-addr": "127.0.0.1:1000",
+                    "bind-addr": "0.0.0.0:1000",
+                    "isp": "local"
+                }
+            ],
+            "csps": [
+                {
+                    "sink-addr": "127.0.0.1:2000",
+                    "bind-addr": "0.0.0.0:2000",
+                    "isp": "local"
+                }
+            ],
+            "neighbors": [
+                "127.0.0.1:1000->RCNBJTEST02;127.0.0.1:1001"
+            ],
+            "monitor-port": "0.0.0.0:1991"
+        },
+        {
+            "name": "RCNBJTEST02",
+            "type": "core",
+            "rsps": [
+                {
+                    "sink-addr": "127.0.0.1:1001",
+                    "bind-addr": "0.0.0.0:1001",
+                    "isp": "local"
+                },
+                {
+                    "sink-addr": "127.0.0.1:1002",
+                    "bind-addr": "0.0.0.0:1002",
+                    "isp": "local"
+                }
+            ],
+            "csps": [
+            ],
+            "neighbors": [
+                "127.0.0.1:1001->RCNBJTEST03;127.0.0.1:1004"
+            ],
+            "monitor-port": "0.0.0.0:1992"
+        },
+        {
+            "name": "RCNBJTEST03",
+            "type": "core",
+            "rsps": [
+                {
+                    "sink-addr": "127.0.0.1:1004",
+                    "bind-addr": "0.0.0.0:1004",
+                    "isp": "local"
+                }
+            ],
+            "csps": [
+            ],
+            "neighbors": [
+                "127.0.0.1:1004->RCNBJTEST01;127.0.0.1:1000",
+                "127.0.0.1:1004->RCNBJTEST04;127.0.0.1:1005"
+            ],
+            "monitor-port": "0.0.0.0:1993"
+        },
+        {
+            "name": "RCNBJTEST04",
+            "type": "core",
+            "rsps": [
+                {
+                    "sink-addr": "127.0.0.1:1005",
+                    "bind-addr": "0.0.0.0:1005",
+                    "isp": "local"
+                }
+            ],
+            "csps": [
+                {
+                    "sink-addr": "127.0.0.1:2001",
+                    "bind-addr": "0.0.0.0:2001",
+                    "isp": "local"
+                }
+            ],
+            "neighbors": [
+                "127.0.0.1:1005->RCNBJTEST02;127.0.0.1:1002"
+            ],
+            "monitor-port": "0.0.0.0:1994"
+        }
+    ],
+
+    "bandwidth-limit": [
+    ],
+
+    "clients": [
+        {
+            "name": "MCNBJTEST01",
+            "type": "mnode",
+            "csps": [
+                "RCNBJTEST01;127.0.0.1:2000"
+            ],
+            "bizs": [
+                "BCNBJTEST01;127.0.0.1:5002"
+            ],
+            "meps": [
+                {
+                    "sink-addr": "127.0.0.1:2001",
+                    "bind-addr": "0.0.0.0:2001",
+                    "isp": "local",
+                    "max-users": 100
+                }
+            ]
+        },
+        {
+            "name": "MCNBJTEST02",
+            "type": "mproxy",
+            "csps": [
+                "RCNBJTEST04;127.0.0.1:2001"
+            ]
+        },
+
+        {
+            "name": "BCNBJTEST01",
+            "type": "biz",
+            "csps": [
+                "RCNBJTEST04;127.0.0.1:2001"
+            ],
+            "app-server":{
+                "sink-addr":"127.0.0.1:5000",
+                "bind-addr":"0.0.0.0:5000"
+            },
+            "mnode-listener":{
+                "sink-addr":"127.0.0.1:5002",
+                "bind-addr":"0.0.0.0:5002"
+            },
+            "sdk-server":{
+                "sink-addr":"127.0.0.1:5001",
+                "bind-addr":"0.0.0.0:5001"
+            },
+            "db-server":{
+                "addr":"localhost:3307",
+                "db-name":"bizserverdb"
+            },
+            "cache-server":{
+                "master-addr":"localhost:6379"
+            }
+        }
+    ],
+
+    "monitors": [
+        {
+            "type": "router-bean-spy",
+            "udps" : [
+                "127.0.0.1:5000"
+            ]
+        }
+    ],
+
+    "name-keys": [
+        { "name": "RCNBJTEST01", "key": 1375731712 },
+        { "name": "RCNBJTEST02", "key": 1375731713 },
+        { "name": "RCNBJTEST03", "key": 1375731714 },
+        { "name": "RCNBJTEST04", "key": 1375731715 },
+
+        { "name": "MCNBJTEST01", "key": 1291845632 },
+        { "name": "MCNBJTEST02", "key": 1291845633 }
+    ]
+}
+
