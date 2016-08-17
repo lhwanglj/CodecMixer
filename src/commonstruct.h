@@ -95,7 +95,7 @@ typedef struct _tCCNUser
 {
     string strUserName;
     uint32_t uiIdentity;
-    CAVMNetPeer* pPeer;    
+//    CAVMNetPeer* pPeer;    
 }T_CCNUSER, *PT_CCNUSER;
 typedef std::list<PT_CCNUSER> LST_PT_CCNUSER;
 typedef LST_PT_CCNUSER::iterator ITR_LST_PT_CCNUSER;
@@ -104,7 +104,7 @@ typedef struct _tUserJoinMsg
 {
     uint8_t   sessionID[16];
     string    strConfig;
-    PT_CCNUSER pUserLeading;
+//    PT_CCNUSER pUserLeading;
     LST_PT_CCNUSER lstUser;
 }T_USERJOINMSG,*PT_USERJOINMSG;
 typedef std::list<PT_USERJOINMSG> LST_PT_USERJOINMSG;

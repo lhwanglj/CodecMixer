@@ -13,6 +13,7 @@
 #include "../AVSDK/src/Adapter/audiopacketbuffer.h"
 #include "avmmixercomm.h"
 #include "TcpChannel.h"
+#include "commonstruct.h"
 
 
 namespace MediaCloud
@@ -33,6 +34,7 @@ class CAVMGridChannel;
         bool Start();
         void Stop();
  
+        void ReleaseUserJoinMsg(PT_USERJOINMSG pUserJoinMsg);
         bool SendKeepalive();
         void  ProcessJoinSessionMsg(char* pPack, uint16_t usPackLen);
 

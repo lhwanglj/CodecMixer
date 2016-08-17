@@ -270,19 +270,24 @@ namespace MediaCloud
         while(itr!=pUserJoinMsg->lstUser.end())
         {
             pUser = *itr;
-
-            memset(szIdentity, 0, 16);
-            snprintf(szIdentity, 16, "%d", pUser->uiIdentity);
-            if(string::npos!=pUserJoinMsg->strConfig.find(szIdentity))
+            if(NULL!=pUser)
             {
-                CAVMNetPeer* pPeer=new CAVMNetPeer();
-                pPeer->SetUserName(pUser->strUserName);
-                pPeer->SetUserIdentity(pUser->uiIdentity);
-                pPeer->InitNP();
-                pExist->SetLeadingPeer(pPeer);
+                memset(szIdentity, 0, 16);
+                snprintf(szIdentity, 16, "%d", pUser->uiIdentity);
+                if(string::npos!=pUserJoinMsg->strConfig.find(szIdentity))
+                {
+                    if(0>=pExist->GetLeadingPeerName().size())
+                    {
+                        CAVMNetPeer* pPeer=new CAVMNetPeer();
+                        pPeer->SetUserName(pUser->strUserName);
+                        pPeer->SetUserIdentity(pUser->uiIdentity);
+                        pPeer->InitNP();
+                        pExist->SetLeadingPeer(pPeer);
+                    }
+                }
+                else
+                    pExist->AddPeer(pUser);
             }
-            else
-                pExist->AddPeer(pUser);
             itr++;
         }
             pExist->GetPeerSize();
@@ -323,14 +328,15 @@ namespace MediaCloud
             if(NULL!=pSession)
             {
                 strLeadingName=pSession->GetLeadingPeerName();
+                if(0<strLeadingName.size())
+                {
+                    iPackReqLen=GridProtocol::SerializeInSessionBean(strLeadingName.c_str(), strLeadingName.size(), 0,
+                                        ullBeanID++, (const char*)sessionID, strLeadingName.c_str(), strLeadingName.size(), 0, 30, pPackReq); 
 
-               iPackReqLen = GridProtocol::SerializeInSessionBean(strLeadingName.c_str(), strLeadingName.size(), 0,
-                                        ullBeanID++, (const char*)sessionID, strLeadingName.c_str(), strLeadingName.size(), 0, 20, pPackReq); 
-
-                m_tcpChannel.SendPacket(pPackReq, iPackReqLen);
-                bRtn=true;
+                    m_tcpChannel.SendPacket(pPackReq, iPackReqLen);
+                    bRtn=true;
+                }
             }
-    
             itr++;
         }
 

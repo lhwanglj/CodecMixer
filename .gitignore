@@ -36,5 +36,6 @@ cscope.*
 *.h264
 *_bk
 .*
+*.log
 
 codecmixer

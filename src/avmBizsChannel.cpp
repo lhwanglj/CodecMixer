@@ -64,6 +64,27 @@ namespace MediaCloud
     {
         m_pAVMGridChannel=pGrid;
     }
+    void CAVMBizsChannel::ReleaseUserJoinMsg( PT_USERJOINMSG pUserJoinMsg )
+    {
+        if(NULL==pUserJoinMsg)
+            return;
+
+        ITR_LST_PT_CCNUSER itr=pUserJoinMsg->lstUser.begin();
+        PT_CCNUSER pUser = NULL;
+        while(itr!=pUserJoinMsg->lstUser.end())
+        {
+            pUser = *itr;
+            if(NULL!=pUser)
+            {
+                delete pUser;
+                pUser=NULL;
+            }
+            itr++;
+        }
+        pUserJoinMsg->lstUser.clear();
+        delete pUserJoinMsg;
+        pUserJoinMsg=NULL;
+    }
 
     void  CAVMBizsChannel::ProcessJoinSessionMsg(char* pPack, uint16_t usPackLen)
     {
@@ -71,7 +92,6 @@ namespace MediaCloud
         cnMsg.ParseFromArray(pPack, usPackLen);
         
         char szIdentity[16];
-
         if(cnMsg.has_notify())
         {
             const CCNNotify& cnNotify = cnMsg.notify();
@@ -90,6 +110,7 @@ namespace MediaCloud
                 const CCNUser& cnUser=cnNotify.user(i);
                 pCCNUser->strUserName = cnUser.uid();
                 pCCNUser->uiIdentity = cnUser.identity();
+                /*
                 pCCNUser->pPeer = new CAVMNetPeer();
                 
                 memset(szIdentity, 0, 16);
@@ -101,12 +122,16 @@ namespace MediaCloud
                 }
                 else
                     pCCNUser->pPeer->SetRoleType(E_AVM_PEERROLE_MINOR);
-
+                */
                  tUserJoinMsg->lstUser.push_back(pCCNUser);
                 log_info(g_pLogHelper, (char*)"recv user join session notify. username:%s identity:%d ", pCCNUser->strUserName.c_str(), pCCNUser->uiIdentity);
             }
         
             m_pAVMGridChannel->InsertUserJoinMsg(tUserJoinMsg);
+
+            //release new ccnuser object and userjoinmsg object
+            ReleaseUserJoinMsg(tUserJoinMsg);
+
         }
     }
     void* CAVMBizsChannel::BizsWorkThreadImp(void* param)

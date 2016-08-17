@@ -33,9 +33,9 @@ using namespace MediaCloud;
 
 void Help()
 {
-    printf("pushrtmp. Version %s\r\n", AVM_VERSION_STRING);
+    printf("codecmix. Version %s\r\n", AVM_VERSION_STRING);
     printf("-h can be used to show this information\r\n");
-    printf("example: ./pushrtmp xxx.conf\r\n");
+    printf("example: ./codecmix xxx.conf\r\n");
     printf("Last Modify time is 2016-08-09 11:05.\r\n");
 }
 
@@ -133,9 +133,9 @@ int main(int argc, char** argv)
         return 0;
      
     string strLogFile = g_confFile.strLogDir;
-    strLogFile += "pushrtmp.log";
+    strLogFile += "codecmix.log";
     g_pLogHelper = open_logfile(strLogFile.c_str());
-    log_info(g_pLogHelper, (char*)"main: pushrtmp start.........................");
+    log_info(g_pLogHelper, (char*)"main: codecmix start.........................");
 
     //connect conf server, get config json
     CTCPChannel tcpChannel;
@@ -164,6 +164,12 @@ int main(int argc, char** argv)
     int iRecvFact=0;
     iRecvFact = tcpChannel.RecvPacket((char*)&cType, 1);
     iRecvFact = tcpChannel.RecvPacket((char*)&cType+1, 1);
+    if(0xfa!=(uint8_t)cType[0]||0xaf!=(uint8_t)cType[1])
+    {
+        log_err(g_pLogHelper,(char*)"config server responce is type failed. %d %d", (uint8_t)cType[0], (uint8_t)cType[1]);
+        return 1;
+    }
+    
     iRecvFact = tcpChannel.RecvPacket((char*)&uijsonLen, sizeof(uijsonLen));
     uijsonLen = ntohl(uijsonLen);
     if(0>uijsonLen || AVM_MAX_CONF_RECV_PACK_SIZE<uijsonLen) 
@@ -185,6 +191,10 @@ int main(int argc, char** argv)
     
     //analyze the response json 
     AnalyzeConfJson(szGetConfRsp);
+    
+    delete[] szGetConfRsp;
+    szGetConfRsp=NULL;
+    tcpChannel.DestoryChannel();
 
     //write json to log
     log_info(g_pLogHelper, (char*)"server conf json name:%s", g_confFile.tConfSvr.strName.c_str());
@@ -198,7 +208,6 @@ int main(int argc, char** argv)
         log_info(g_pLogHelper, (char*)"server conf json csps_%d: %s:%d", iIndex++, pSvrAddr->szIP, pSvrAddr->usPort);
         itr++;
     } 
-
     itr= g_confFile.tConfSvr.vecstrbizs.begin();
     pSvrAddr=NULL;
     iIndex=0;
@@ -209,31 +218,40 @@ int main(int argc, char** argv)
         itr++;
     } 
 
+    //create grid channel to connect grid server
     CAVMGridChannel gridChannel;
     PT_SERVERADDR pGridAddr = g_confFile.tConfSvr.vecstrCSPS.front();
     if(NULL!=pGridAddr)
     {
-        gridChannel.CreateAndConnect(pGridAddr->szIP, pGridAddr->usPort);
-        gridChannel.Start();
+        if(gridChannel.CreateAndConnect(pGridAddr->szIP, pGridAddr->usPort))
+        {
+            log_info(g_pLogHelper, (char*)"connect grid server successed. serverinfo:%s:%d", pGridAddr->szIP, pGridAddr->usPort);
+            gridChannel.Start();
+        }
+        else
+            log_info(g_pLogHelper, (char*)"connect grid server failed. serverinfo:%s:%d", pGridAddr->szIP, pGridAddr->usPort);
     }
 
-/*
+    //create bizs channel to connect bizs server
     CAVMBizsChannel bizChannel;
     PT_SERVERADDR pServerAddr = g_confFile.tConfSvr.vecstrbizs.front();
     bizChannel.SetGridChannel(&gridChannel);
-
     if(NULL!=pServerAddr)
     {
-        bizChannel.CreateAndConnect(pServerAddr->szIP, pServerAddr->usPort); 
-        bizChannel.Start();
+        if(bizChannel.CreateAndConnect(pServerAddr->szIP, pServerAddr->usPort))
+        {
+            log_info(g_pLogHelper, (char*)"connect bizs server successed. serverinfo:%s:%d", pServerAddr->szIP, pServerAddr->usPort );
+            bizChannel.Start();
+        }
+        else
+            log_info(g_pLogHelper, (char*)"connect bizs server successed. serverinfo:%s:%d", pServerAddr->szIP, pServerAddr->usPort );
     }
-*/
 
     while(1)
     {
         sleep(1);
     }
-
-    tcpChannel.DestoryChannel();
+    bizChannel.DestoryChannel();
+    gridChannel.DestoryChannel();
     return 1;
 }

@@ -45,6 +45,8 @@ namespace MediaCloud
     public:
         CAVMSession();
         ~CAVMSession();
+        
+        void SetCodecMixer(CAVMMixer* pMixer);
 
         bool AddPeer(PT_CCNUSER pUser);
         int  GetPeerSize();

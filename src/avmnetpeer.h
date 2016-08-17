@@ -107,6 +107,13 @@ namespace MediaCloud
         uint32_t uiPayloadType;
         uint32_t uiDuration;
         MediaInfo* pMediaInfo;
+        t_AudioNetFrame()
+        {
+            pData=NULL;
+            uiDataLen=0;
+            pDecData=NULL;
+            pMediaInfo=NULL; 
+        }
     }T_AUDIONETFRAME, *PT_AUDIONETFRAME;
     void ReleaseAudioNetFrame(PT_AUDIONETFRAME pAudioNF);
 
@@ -125,6 +132,12 @@ namespace MediaCloud
         void*      pPlaneData;
         uint32_t   iPlaneDataSize;
         uint32_t   iPlaneDataPos;
+        t_PicDecInfo ()
+        {
+            pPlaneData=NULL;
+            iPlaneDataSize=0;
+            iPlaneDataPos=0;
+        }
     }T_PICDECINFO, *PT_PICDECINFO;
     
     typedef struct t_VideoNetFrame
@@ -138,9 +151,6 @@ namespace MediaCloud
         uint32_t uiConvHeight;
         uint32_t uiConvStrideY;
         uint32_t uiConvStrideUV;
-      //  void* pDecData;
-      //  uint32_t uiDecDataSize;
-      //  uint32_t uiDecDataPos;
         uint32_t uiIdentity;
         uint32_t uiTimeStamp;
         uint32_t uiTimeStampAdjust;
@@ -150,6 +160,14 @@ namespace MediaCloud
         uint32_t uiPayloadType;
         uint32_t uiDuration;
         MediaInfo* pMediaInfo;
+        t_VideoNetFrame():tPicDecInfo()
+        {
+            pData=NULL;
+            uiDataLen=0;
+            pConvData=NULL;
+            uiConvDataSize=0;
+            pMediaInfo=NULL;
+        }
     }T_VIDEONETFRAME, *PT_VIDEONETFRAME;
     void ReleaseVideoNetFrame(PT_VIDEONETFRAME pAudioNF);
     typedef std::map<uint32_t, PT_VIDEONETFRAME> MAP_PT_VIDEONETFRAME;

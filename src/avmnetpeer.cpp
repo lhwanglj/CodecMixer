@@ -123,7 +123,7 @@ namespace MediaCloud
             PT_AUDIONETFRAME ptAudioNetFrame = *reinterpret_cast<T_AUDIONETFRAME**>(pSlot->body);
             ReleaseAudioNetFrame(ptAudioNetFrame);
         }   
-        return FRAMEQUEUE_AUDIO::VisitorRes::Continue;  
+        return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
     }
 
 

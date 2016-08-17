@@ -188,7 +188,8 @@ namespace MediaCloud
 */
 
     CAVMSession::CAVMSession():m_pLeadingPeer(NULL)
-                                , m_usPeerCount(0)
+                                ,m_usPeerCount(0)
+                                ,m_pAVMMixer(NULL)
     {
 
     }
@@ -318,6 +319,8 @@ namespace MediaCloud
             SendVideo2Rtmp(velist.iPicData+ii, pVideoNetFrameMain);
             free(velist.iPicData[ii].iData);
         }
+
+        ReleaseVideoNetFrame(pVideoNetFrameMain);
     }
 
 /*
@@ -633,6 +636,11 @@ namespace MediaCloud
         }
     
         CPictureMixer::MergeFrame(MMFI, mofi, lstVFLesser.size());
+        if(NULL!=pTemp)
+        {
+            free(pTemp);
+            pTemp=NULL;        
+        }
 
         bRtn=true;
         return bRtn;
@@ -984,10 +992,19 @@ namespace MediaCloud
     }
   */
 
-  
+    void CAVMSession::SetCodecMixer(CAVMMixer* pMixer)
+    {
+        m_pAVMMixer=pMixer;
+    }
     bool CAVMSession::AddPeer(PT_CCNUSER pUser)
     {
         bool bRtn=false;
+        if(NULL!=m_pLeadingPeer)
+        {
+            if(pUser->uiIdentity==m_pLeadingPeer->GetUserIdentity())
+                return bRtn;
+        }        
+
         if(NULL==pUser||AVM_MAX_NETPEER_SIZE<=m_usPeerCount)
             return bRtn;
 
