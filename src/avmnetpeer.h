@@ -247,6 +247,12 @@ namespace MediaCloud
 
         void SetCurVideoDecFrame(PT_VIDEONETFRAME pVideoDecFrame);
         PT_VIDEONETFRAME GetCurVideoDecFrame();
+
+        bool SetUserName(string strUserName);
+        string GetUserName();
+
+        bool SetUserIdentity(uint32_t uiIdentity);
+        uint32_t GetUserIdentity();
  
     private:
         E_PEERROLETYPE     m_ePeerRoleType;
@@ -292,6 +298,8 @@ namespace MediaCloud
         pthread_t   m_idVideoDecThread;
         bool        m_bStopVideoDecThreadFlag;
         
+        string m_strUserName;
+        uint32_t m_uiUserIdentity;
     };
 
 }

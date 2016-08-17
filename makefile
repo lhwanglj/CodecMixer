@@ -99,7 +99,7 @@ LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
                     ./AVSDK/src/Adapter/audiopacketbuffer.cpp\
                     ./src/avmnetpeer.cpp\
                     ./src/avmmixer.cpp\
-                    ./src/avmprocess.cpp\
+                    ./src/avmSession.cpp\
                     ./src/Ini.cpp\
                     ./src/commonstruct.cpp\
                     ./src/MutexObj.cpp\
@@ -111,7 +111,6 @@ LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
                     ./src/avmGridChannel.cpp\
                     ./src/AVMixer2BizsMessage.cpp\
                     ./src/rgridproto.cpp\
-                    ./src/cmSession.cpp\
 					./src/main.cpp
                    
 

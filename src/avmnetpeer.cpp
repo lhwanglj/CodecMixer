@@ -63,6 +63,32 @@ namespace MediaCloud
 
     }
 
+    bool CAVMNetPeer::SetUserName(string strUserName)
+    {
+        bool bRtn=false;
+        m_strUserName=strUserName;
+        bRtn=true;
+        return bRtn;
+    }
+    string CAVMNetPeer::GetUserName()
+    {
+        return m_strUserName;
+    }
+
+    bool CAVMNetPeer::SetUserIdentity(uint32_t uiIdentity)
+    {
+        bool bRtn=false;
+        m_uiUserIdentity=uiIdentity;
+        bRtn=true;
+        return bRtn;
+    }
+
+    uint32_t CAVMNetPeer::GetUserIdentity()
+    {
+        return m_uiUserIdentity;
+    }
+
+
     void CAVMNetPeer::SetAudioParamType(T_AUDIOPARAM& tAudioParam, E_PARAMTYPE eParamType)
     {
         if(E_AVPARAMTYPE_NET==eParamType)

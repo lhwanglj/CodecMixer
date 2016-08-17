@@ -94,7 +94,6 @@ namespace MediaCloud
                 
                 memset(szIdentity, 0, 16);
                 snprintf(szIdentity, 16, "%d", pCCNUser->uiIdentity);
-
                 if(string::npos!=strConfig.find(szIdentity))
                 {
                     pCCNUser->pPeer->SetRoleType(E_AVM_PEERROLE_LEADING);

@@ -1,8 +1,9 @@
-#ifndef __AVM_PROCESS_H__
-#define __AVM_PROCESS_H__
+#ifndef __AVM_SESSION_H__
+#define __AVM_SESSION_H__
 
 #include "avmnetpeer.h"
 #include "avmmixer.h"
+#include "commonstruct.h"
 
 namespace MediaCloud
 {
@@ -39,13 +40,18 @@ namespace MediaCloud
     typedef std::list<PT_AUDIO_DEC_DATA> LST_PT_AUDIO_DEC_DATA;
     typedef LST_PT_AUDIO_DEC_DATA::iterator ITR_LST_PT_AUDIO_DEC_DATA;    
     
-    class CAVMProcess
+    class CAVMSession
     {
     public:
-        CAVMProcess();
-        ~CAVMProcess();
+        CAVMSession();
+        ~CAVMSession();
+
+        bool AddPeer(PT_CCNUSER pUser);
+        int  GetPeerSize();
+        CAVMNetPeer* FindPeer(uint32_t uiIdentity);
         
         void SetLeadingPeer(CAVMNetPeer* pLeadingPeer);
+        string GetLeadingPeerName();
         
         bool SetNetPeer(int iIndex, CAVMNetPeer* pPeer);
         bool SetNetPeerCount(uint16_t usCount);       
@@ -75,7 +81,7 @@ namespace MediaCloud
         void* ProcessVideoThreadImp();
         bool StartProcessVideoThread();
         void StopProcessVideoThread();
-
+        
 
     private:
         CAVMMixer* m_pAVMMixer;
@@ -97,4 +103,4 @@ namespace MediaCloud
 
 }
 
-#endif /* __AVM_PROCESS_H__ */
+#endif /* __AVM_SESSION_H__ */

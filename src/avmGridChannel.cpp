@@ -66,14 +66,92 @@ namespace MediaCloud
     {
         //put the mediainfo struct to peer's cache
         //find the identity and add data to the user
-        MAP_PT_USERJOINMSG m_mapUserJoinMsg;        
+       // MAP_PT_USERJOINMSG m_mapUserJoinMsg;        
+        ITR_MAP_PT_CAVMSESSION itr=m_mapSession.begin();
+        PT_CAVMSESSION pSession=NULL;
+        CAVMNetPeer* pPeer=NULL;
+        while(itr!=m_mapSession.end())
+        {
+            pSession = itr->second;
+            if(NULL!=pSession)
+            {
+                pPeer=pSession->FindPeer(mInfo->identity);
+                if(NULL!=pPeer)
+                {
+                    //add the data to peer cache
+                    if(eAudio==mInfo->nStreamType)
+                    {
+                        PT_AUDIONETFRAME pAudioNetFrame = new T_AUDIONETFRAME;
+                        pAudioNetFrame->pData=pData;
+                        pAudioNetFrame->uiDataLen=nSize;
+                        pAudioNetFrame->uiDuration = nSize/(mInfo->audio.nSampleRate*mInfo->audio.nChannel*mInfo->audio.nBitPerSample);  //need to set
+                        pAudioNetFrame->uiIdentity = mInfo->identity;
+                        pAudioNetFrame->uiPayloadType=0;
+                        pAudioNetFrame->uiTimeStamp=mInfo->audio.nTimeStamp;
+                        pAudioNetFrame->pMediaInfo=mInfo;
+                        
+                        pPeer->AddAudioData(pAudioNetFrame); 
+                    }
+                    else if(eVideo==mInfo->nStreamType)
+                    {
+                        PT_VIDEONETFRAME pVideoNetFrame = new T_VIDEONETFRAME;
+                        switch(mInfo->video.nType)
+                       {
+                        case eSPSFrame :
+                             pVideoNetFrame->iFrameType.h264= kVideoSPSFrame;
+                             break;
+                        case ePPSFrame :
+                             pVideoNetFrame->iFrameType.h264= kVideoPPSFrame;
+                             break;
+                        case eIDRFrame:
+                             pVideoNetFrame->iFrameType.h264= kVideoIDRFrame;
+                             break;
+                        case eIFrame:
+                             pVideoNetFrame->iFrameType.h264= kVideoIFrame;
+                             break;
+                        case ePFrame:
+                             pVideoNetFrame->iFrameType.h264= kVideoPFrame;
+                             break;
+                        case eBFrame:
+                             pVideoNetFrame->iFrameType.h264= kVideoBFrame;
+                             break;
+                        default:
+                             pVideoNetFrame->iFrameType.h264= kVideoUnknowFrame;
+                             break;
+                        }
+                        //pVideoNetFrame->iFrameType = mInfo->video.nType;
+                        pVideoNetFrame->pData = pData;
+                        pVideoNetFrame->uiDuration=1000/mInfo->video.nFrameRate;
+                        pVideoNetFrame->uiDataLen=nSize;
+                        pVideoNetFrame->uiIdentity = mInfo->identity;
+                        pVideoNetFrame->uiPayloadType=0;
+                        pVideoNetFrame->uiTimeStamp=mInfo->video.nDtsTimeStamp;
+                        pVideoNetFrame->usFrameIndex=mInfo->frameId;
+                        pVideoNetFrame->pMediaInfo=mInfo;
+                        pPeer->AddVideoData(pVideoNetFrame);                               
+                    }
+
+                    break;
+                }
+            }
+            itr++;
+        }       
+
+    }
+
+/*
+    int CAVMGridChannel::HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo)
+    {
+        //put the mediainfo struct to peer's cache
+        //find the identity and add data to the user
+       // MAP_PT_USERJOINMSG m_mapUserJoinMsg;        
         ITR_MAP_PT_USERJOINMSG itr=m_mapUserJoinMsg.begin();
         ITR_LST_PT_CCNUSER itrUser;
         PT_USERJOINMSG pUserJoinMsg=NULL;
         PT_CCNUSER pUserInfo=NULL;
         bool bFound=false;
 
-        while(itr !=m_mapUserJoinMsg.end())
+        while(itr!=m_mapUserJoinMsg.end())
         {
             pUserJoinMsg=itr->second;
             if(NULL!=pUserJoinMsg)
@@ -148,6 +226,8 @@ namespace MediaCloud
             itr++;
         }
     }
+*/
+
 
 
     void  CAVMGridChannel::ProcessRecvPacket(char* pRecvPack, int uiRecvPackLen, int iType)
@@ -176,6 +256,40 @@ namespace MediaCloud
 
     int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
     {
+        CAVMSession* pExist = m_mapSession[pUserJoinMsg->sessionID];
+        char szIdentity[16];
+        if(NULL==pExist)
+        {
+            pExist = new CAVMSession();
+            pExist->StartProcessAudioThread();
+            pExist->StartProcessVideoThread();
+        }
+        
+        ITR_LST_PT_CCNUSER itr=pUserJoinMsg->lstUser.begin();
+        PT_CCNUSER pUser = NULL;
+        while(itr!=pUserJoinMsg->lstUser.end())
+        {
+            pUser = *itr;
+
+            memset(szIdentity, 0, 16);
+            snprintf(szIdentity, 16, "%d", pUser->uiIdentity);
+            if(string::npos!=pUserJoinMsg->strConfig.find(szIdentity))
+            {
+                CAVMNetPeer* pPeer=new CAVMNetPeer();
+                pPeer->SetUserName(pUser->strUserName);
+                pPeer->SetUserIdentity(pUser->uiIdentity);
+                pPeer->InitNP();
+                pExist->SetLeadingPeer(pPeer);
+            }
+            else
+                pExist->AddPeer(pUser);
+            itr++;
+        }
+            pExist->GetPeerSize();
+    }
+
+/*    int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
+    {
         //find the user in map
         PT_USERJOINMSG pExist = m_mapUserJoinMsg[pUserJoinMsg->sessionID];
         if(NULL == pExist)
@@ -187,8 +301,44 @@ namespace MediaCloud
         }
         return pExist->lstUser.size();
     }
+*/
+
 
     bool  CAVMGridChannel::SendBeanInSession()
+    {
+        bool bRtn=false;
+        ITR_MAP_PT_CAVMSESSION itr=m_mapSession.begin();
+        CAVMSession* pSession=NULL;
+        static uint64_t ullBeanID=0;
+        char pPackReq[128];
+
+        int iPackReqLen=0;
+        string strLeadingName("");
+        uint8_t   sessionID[16];       
+ 
+        while(itr!=m_mapSession.end())
+        {
+            memcpy(sessionID, itr->first, 16);
+            pSession=itr->second;
+            if(NULL!=pSession)
+            {
+                strLeadingName=pSession->GetLeadingPeerName();
+
+               iPackReqLen = GridProtocol::SerializeInSessionBean(strLeadingName.c_str(), strLeadingName.size(), 0,
+                                        ullBeanID++, (const char*)sessionID, strLeadingName.c_str(), strLeadingName.size(), 0, 20, pPackReq); 
+
+                m_tcpChannel.SendPacket(pPackReq, iPackReqLen);
+                bRtn=true;
+            }
+    
+            itr++;
+        }
+
+        return bRtn;
+    }
+
+/*
+     bool  CAVMGridChannel::SendBeanInSession()
     {
         bool bRtn=false;
         ITR_MAP_PT_USERJOINMSG itr=m_mapUserJoinMsg.begin();
@@ -217,6 +367,7 @@ namespace MediaCloud
 
         return bRtn;
     }
+*/
 
     void* CAVMGridChannel::GridWorkThreadImp(void* param)
     {
@@ -276,9 +427,8 @@ namespace MediaCloud
             delete[] pRecvPack;
             pRecvPack=NULL;
         }
- 
-
     }
+
     bool CAVMGridChannel::CreateAndConnect(char* szIP, unsigned short usPort)
     {
         bool bRtn=false;

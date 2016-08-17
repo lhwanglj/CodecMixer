@@ -15,13 +15,17 @@
 #include "TcpChannel.h"
 #include "commonstruct.h"
 #include <hpsp/streamframe.hpp>
+#include "avmSession.h"
 
 using namespace MComp;
 
 namespace MediaCloud
 {
-
     bool ptrCCNUserCmp(PT_CCNUSER pfirst, PT_CCNUSER pSecond);
+
+    typedef CAVMSession* PT_CAVMSESSION;
+    typedef std::map<uint8_t*, CAVMSession*, T_PTRGUIDCMP> MAP_PT_CAVMSESSION;
+    typedef MAP_PT_CAVMSESSION::iterator ITR_MAP_PT_CAVMSESSION;
 
     class CAVMGridChannel: public IFrameSyncCallBack
     {
@@ -53,7 +57,8 @@ namespace MediaCloud
 
         StreamFrame m_streamFrame;
         
-        MAP_PT_USERJOINMSG m_mapUserJoinMsg;        
+//        MAP_PT_USERJOINMSG m_mapUserJoinMsg;        
+        MAP_PT_CAVMSESSION m_mapSession;
     };
 
 }

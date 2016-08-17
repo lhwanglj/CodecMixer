@@ -1,6 +1,6 @@
 
 #include <assert.h>
-#include "avmprocess.h"
+#include "avmSession.h"
 #include <picturemixer.hpp>
 #include <unistd.h>
 
@@ -187,22 +187,23 @@ namespace MediaCloud
     }
 */
 
-    CAVMProcess::CAVMProcess():m_pLeadingPeer(NULL)
+    CAVMSession::CAVMSession():m_pLeadingPeer(NULL)
+                                , m_usPeerCount(0)
     {
 
     }
 
-    CAVMProcess::~CAVMProcess()
+    CAVMSession::~CAVMSession()
     {
 
     }
 
-    void CAVMProcess::SetAudioParamType(T_AUDIOPARAM& tAudioParam)
+    void CAVMSession::SetAudioParamType(T_AUDIOPARAM& tAudioParam)
     {
        m_tAudioDecParam=tAudioParam; 
     }
 
-    bool CAVMProcess::SetMergeFrameParam(const T_MERGEFRAMEPARAM& tMFP)
+    bool CAVMSession::SetMergeFrameParam(const T_MERGEFRAMEPARAM& tMFP)
     {
         bool bRtn=false;
 
@@ -212,7 +213,7 @@ namespace MediaCloud
         return bRtn;
     }
 
-    void CAVMProcess::MixVideoFrameAndSend(PT_VIDEONETFRAME pVDFLeading, LST_PT_VIDEONETFRAME& lstVDFMinor)
+    void CAVMSession::MixVideoFrameAndSend(PT_VIDEONETFRAME pVDFLeading, LST_PT_VIDEONETFRAME& lstVDFMinor)
     {
          //get all audio frame
         PT_VIDEONETFRAME pVideoNetFrameMain=pVDFLeading;
@@ -320,7 +321,7 @@ namespace MediaCloud
     }
 
 /*
-    void CAVMProcess::MixVideoFrameAndSend(uint32_t usTSFound)
+    void CAVMSession::MixVideoFrameAndSend(uint32_t usTSFound)
     {
         //get all audio frame
         PT_VIDEONETFRAME pVideoNetFrameMain=NULL;
@@ -457,7 +458,7 @@ namespace MediaCloud
 
 */
 
-/*    int CAVMProcess::GetAudioTimeStamp(LST_UINT32 lstTS)
+/*    int CAVMSession::GetAudioTimeStamp(LST_UINT32 lstTS)
     {
         LST_UINT32 lstTimeStamp;
         CAVMNetPeer* pFirstPeer = m_pPeers[0];
@@ -485,7 +486,7 @@ namespace MediaCloud
         return lstTS.size();    
     }
 
-    int CAVMProcess::GetVideoTimeStamp(LST_UINT32 lstTS)
+    int CAVMSession::GetVideoTimeStamp(LST_UINT32 lstTS)
     {
         LST_UINT32 lstTimeStamp;
         CAVMNetPeer* pFirstPeer = m_pPeers[0];
@@ -514,7 +515,7 @@ namespace MediaCloud
     }
 */
 
-    int  CAVMProcess::MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame)
+    int  CAVMSession::MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame)
     {
         int iRtn=0;
         int iFrameCount=lstAudioNetFrame.size();
@@ -545,7 +546,7 @@ namespace MediaCloud
         return iRtn;
     }
 
-    bool CAVMProcess::MergeVideoFrame(PT_VIDEONETFRAME pVFMain, LST_PT_VIDEONETFRAME& lstVFLesser)
+    bool CAVMSession::MergeVideoFrame(PT_VIDEONETFRAME pVFMain, LST_PT_VIDEONETFRAME& lstVFLesser)
     {
         bool bRtn=false;
         if(NULL==pVFMain || 0 >= lstVFLesser.size())
@@ -637,7 +638,7 @@ namespace MediaCloud
         return bRtn;
     }
 
-    void CAVMProcess::MixAudioFrameAndSend(PT_AUDIONETFRAME pADFLeading, LST_PT_AUDIONETFRAME& lstADFMinor)
+    void CAVMSession::MixAudioFrameAndSend(PT_AUDIONETFRAME pADFLeading, LST_PT_AUDIONETFRAME& lstADFMinor)
     {
         //mix audio and send to rtmp server
         unsigned char* pMixData=NULL;
@@ -681,7 +682,7 @@ namespace MediaCloud
     }
 
 /*
-    void CAVMProcess::MixAudioFrameAndSend(uint32_t usTSFound)
+    void CAVMSession::MixAudioFrameAndSend(uint32_t usTSFound)
     {
         //get all audio frame
         unsigned char* pMixData=NULL;
@@ -743,7 +744,7 @@ namespace MediaCloud
         lstAudioNetFrame.clear();
     }
 */
-    bool CAVMProcess::SendVideo2Rtmp(VideoEncodedData * pVEData, PT_VIDEONETFRAME pVideoNetFrame)
+    bool CAVMSession::SendVideo2Rtmp(VideoEncodedData * pVEData, PT_VIDEONETFRAME pVideoNetFrame)
     {
         bool bRtn=false;
         
@@ -789,11 +790,11 @@ namespace MediaCloud
     
     void* ProcessAudioThreadEntry(void* pParam)
     {
-        CAVMProcess* pThis=(CAVMProcess*)pParam;
+        CAVMSession* pThis=(CAVMSession*)pParam;
         pThis->ProcessAudioThreadImp();
     }
 
-    void* CAVMProcess::ProcessAudioThreadImp()
+    void* CAVMSession::ProcessAudioThreadImp()
     {
         while(!m_bStopProcessAudioThreadFlag)
         {
@@ -803,7 +804,7 @@ namespace MediaCloud
         return NULL;
     }
 
-    bool CAVMProcess::StartProcessAudioThread()
+    bool CAVMSession::StartProcessAudioThread()
     {
         bool bRtn=false;
         int iRtn=pthread_create(&m_idProcessAudioThread, NULL, ProcessAudioThreadEntry, this);
@@ -812,7 +813,7 @@ namespace MediaCloud
         return bRtn;
     }
 
-    void CAVMProcess::StopProcessAudioThread()
+    void CAVMSession::StopProcessAudioThread()
     {
         m_bStopProcessAudioThreadFlag=true;
         pthread_join(m_idProcessAudioThread, NULL);
@@ -820,11 +821,11 @@ namespace MediaCloud
 
     void* ProcessVideoThreadEntry(void* pParam)
     {
-        CAVMProcess* pThis=(CAVMProcess*)pParam;
+        CAVMSession* pThis=(CAVMSession*)pParam;
         pThis->ProcessVideoThreadImp();
     }
 
-    void* CAVMProcess::ProcessVideoThreadImp()
+    void* CAVMSession::ProcessVideoThreadImp()
     {
         while(!m_bStopProcessVideoThreadFlag)
         {
@@ -835,7 +836,7 @@ namespace MediaCloud
         return NULL;
     }
 
-    bool CAVMProcess::StartProcessVideoThread()
+    bool CAVMSession::StartProcessVideoThread()
     {
         bool bRtn=false;
         int iRtn=pthread_create(&m_idProcessVideoThread, NULL, ProcessVideoThreadEntry, this);
@@ -844,14 +845,14 @@ namespace MediaCloud
         return bRtn;
     }
 
-    void CAVMProcess::StopProcessVideoThread()
+    void CAVMSession::StopProcessVideoThread()
     {
         m_bStopProcessVideoThreadFlag=true;
         pthread_join(m_idProcessVideoThread, NULL);
     }
 
 
-    void CAVMProcess::ProcessDecAudio()
+    void CAVMSession::ProcessDecAudio()
     {
         PT_AUDIONETFRAME pAudioNetFrameLeading = m_pLeadingPeer->GetFirstAudioDecFrame();    
         if(NULL==pAudioNetFrameLeading)
@@ -898,7 +899,7 @@ namespace MediaCloud
         MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame); 
     }
 
-    void CAVMProcess::ProcessDecVideo()
+    void CAVMSession::ProcessDecVideo()
     {
         PT_VIDEONETFRAME pVideoNetFrameLeading = m_pLeadingPeer->GetFirstVideoDecFrame();
         if(NULL==pVideoNetFrameLeading)
@@ -941,7 +942,7 @@ namespace MediaCloud
         MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);
     }
 
-/*    void CAVMProcess::ProcessDecAudio()
+/*    void CAVMSession::ProcessDecAudio()
     {
         //read a audio frame from all peers and the timestamp must the same
         LST_UINT32 lstTS;
@@ -962,7 +963,7 @@ namespace MediaCloud
 */
 
 
-/*    void CAVMProcess::ProcessDecVideo()
+/*    void CAVMSession::ProcessDecVideo()
     {
         //read a video frame from all peers and the timestamp must the same
          LST_UINT32 lstTS;
@@ -984,12 +985,70 @@ namespace MediaCloud
   */
 
   
-    void CAVMProcess::SetLeadingPeer(CAVMNetPeer* pLeadingPeer)
+    bool CAVMSession::AddPeer(PT_CCNUSER pUser)
+    {
+        bool bRtn=false;
+        if(NULL==pUser||AVM_MAX_NETPEER_SIZE<=m_usPeerCount)
+            return bRtn;
+
+        CAVMNetPeer* pPeer=NULL;
+        for(int i=0;i<m_usPeerCount;i++)
+        {
+            pPeer=m_pPeers[i];        
+            if(NULL!=pPeer)
+            {
+                if(pUser->uiIdentity==pPeer->GetUserIdentity())
+                    return bRtn;
+            }
+        }
+        pPeer=new CAVMNetPeer();
+        pPeer->SetUserName(pUser->strUserName);
+        pPeer->SetUserIdentity(pUser->uiIdentity);
+        pPeer->InitNP();
+        m_pPeers[m_usPeerCount++]=pPeer;
+        
+        bRtn=true;
+        return bRtn;
+    }
+
+    int  CAVMSession::GetPeerSize()
+    {
+        return m_usPeerCount;
+    }
+    void CAVMSession::SetLeadingPeer(CAVMNetPeer* pLeadingPeer)
     {
         m_pLeadingPeer=pLeadingPeer;
     }
 
-    bool CAVMProcess::SetNetPeer(int iIndex, CAVMNetPeer* pPeer)
+    CAVMNetPeer* CAVMSession::FindPeer(uint32_t uiIdentity)
+    {
+        CAVMNetPeer* pPeer=NULL;
+        if(NULL!=m_pLeadingPeer)
+        {
+            if(uiIdentity==m_pLeadingPeer->GetUserIdentity())
+                return m_pLeadingPeer;
+        }
+
+        for(int i=0;i<m_usPeerCount;i++)
+        {
+            pPeer=m_pPeers[i];
+            if(uiIdentity==pPeer->GetUserIdentity())
+                break;
+            pPeer=NULL;
+        }
+
+        return pPeer;
+    }
+
+    string CAVMSession::GetLeadingPeerName()
+    {
+        string strName("");
+        if(NULL==m_pLeadingPeer)
+            return strName;
+        return m_pLeadingPeer->GetUserName();
+    }
+
+    bool CAVMSession::SetNetPeer(int iIndex, CAVMNetPeer* pPeer)
     {
         bool bRtn=false;
         if(iIndex>=AVM_MAX_NETPEER_SIZE || NULL==pPeer)
@@ -1000,7 +1059,7 @@ namespace MediaCloud
         return bRtn;
     }
 
-    bool CAVMProcess::SetNetPeerCount(uint16_t usCount)
+    bool CAVMSession::SetNetPeerCount(uint16_t usCount)
     {
         bool bRtn=false;
         if(usCount>AVM_MAX_NETPEER_SIZE)

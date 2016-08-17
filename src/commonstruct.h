@@ -110,7 +110,7 @@ typedef struct _tUserJoinMsg
 typedef std::list<PT_USERJOINMSG> LST_PT_USERJOINMSG;
 typedef LST_PT_USERJOINMSG::iterator ITR_LST_PT_USERJOINMSG;
 
-struct _ptrGUIDCmp
+typedef struct _ptrGUIDCmp
 {
     bool operator()( const uint8_t* lhs, const uint8_t* rhs ) const
     {
@@ -125,7 +125,7 @@ struct _ptrGUIDCmp
 
         return ulTopl<ulTopr;
     }
-};
+}T_PTRGUIDCMP;
 
 typedef std::map<uint8_t*, PT_USERJOINMSG, _ptrGUIDCmp> MAP_PT_USERJOINMSG;
 typedef MAP_PT_USERJOINMSG::iterator ITR_MAP_PT_USERJOINMSG; 
