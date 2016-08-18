@@ -60,6 +60,7 @@ typedef struct _tGuid
 }T_GUID, *T_PGUID;
 #pragma pack()
 
+string GUIDToString(T_GUID guid);
 
 typedef struct t_ServerAddr
 {

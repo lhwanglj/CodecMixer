@@ -23,7 +23,7 @@ MV		= mv -rf
 RM		= rm -rf
 
 # define some parameter variable 
-DEBUG_CFLAGS	= -g -O0 -std=c++11 -D POSIX 
+DEBUG_CFLAGS	= -g -O0 -std=c++11 -msse -msse2 -msse3 -msse4  -D POSIX 
 #DEBUG_CFLAGS	= -Wall -Wno-format -g -DDEBUG -Wreorder
 RELEASE_CFLAGS	= -Wall -Wno-unknown-pragmas -Wno-format -O3
 
@@ -109,8 +109,22 @@ LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
                     ./src/BufSerialize.cpp\
                     ./src/avmBizsChannel.cpp\
                     ./src/avmGridChannel.cpp\
+                    ./src/clock.cpp\
                     ./src/AVMixer2BizsMessage.cpp\
                     ./src/rgridproto.cpp\
+                    ./src/stmassembler.cpp\
+                    ./src/misc.cpp\
+                    ./src/fbuffer.cpp\
+                    ./src/userproto.cpp\
+                    ./src/mqthread.cpp\
+                    ./src/socket.cpp\
+                    ./src/fmtbuffer.cpp\
+                    ./src/fast_fec.cpp\
+                    ./src/userproto.pb.cc\
+                    ./src/fecrepo_reader.cpp\
+                    ./src/fast_decode.cpp\
+                    ./src/fecrepo2_8_200.cpp\
+                    ./src/stmrecver.cpp\
 					./src/main.cpp
                    
 

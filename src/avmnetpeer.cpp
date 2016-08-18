@@ -428,6 +428,7 @@ namespace MediaCloud
             //release audio net frame
             if(NULL!=ptAudioNetFrame->pData)
             {
+                //need release data using hpso api
                 delete[] (char*)ptAudioNetFrame->pData;
                 ptAudioNetFrame->pData=NULL;
             }

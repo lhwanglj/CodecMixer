@@ -40,7 +40,8 @@ namespace MediaCloud
         int iPackLenSnd = m_tcpChannel.SendPacket(pPack, iPackLen);
         if(iPackLen==iPackLenSnd)
             bRtn=true;
-
+        
+        log_info(g_pLogHelper, (char*)"send login to rgrid. name:%d", g_confFile.tConfSvr.strName.c_str());
         return bRtn; 
     }
 
@@ -235,6 +236,7 @@ namespace MediaCloud
        if(iType!=GridProtoTypeStream) 
             return;
 
+       log_info(g_pLogHelper, "recv media packet. len:%d", uiRecvPackLen); 
         //process data stream
         
         //call daiyue's api to get frameid streamtype frametype user's identity
@@ -320,10 +322,13 @@ namespace MediaCloud
         int iPackReqLen=0;
         string strLeadingName("");
         uint8_t   sessionID[16];       
- 
+        T_GUID guidSession;
+
         while(itr!=m_mapSession.end())
         {
             memcpy(sessionID, itr->first, 16);
+            memcpy(&guidSession, sessionID, 16); 
+            string strGuid= GUIDToString(guidSession);
             pSession=itr->second;
             if(NULL!=pSession)
             {
@@ -335,6 +340,11 @@ namespace MediaCloud
 
                     m_tcpChannel.SendPacket(pPackReq, iPackReqLen);
                     bRtn=true;
+                    log_info(g_pLogHelper, (char*)"send beaninsession req successed. name:%s beanid:%d sessionid:%s", strLeadingName.c_str(), ullBeanID-1, strGuid.c_str());
+                }
+                else
+                {
+                    log_info(g_pLogHelper, (char*)"send beaninsession req failed no leading name:%s beanid:%d sessionid:%s", strLeadingName.c_str(), ullBeanID, strGuid.c_str());
                 }
             }
             itr++;
@@ -404,7 +414,7 @@ namespace MediaCloud
                 tmPre=tmNow;
             }
         
-            log_info(g_pLogHelper, "send heatbeat pack to grid server, second:%d millsecond:%d", tmTest.tv_sec, tmTest.tv_usec/1000); 
+        //    log_info(g_pLogHelper, "send heatbeat pack to grid server, second:%d millsecond:%d", tmTest.tv_sec, tmTest.tv_usec/1000); 
             
             iRecvFact = m_tcpChannel.RecvPacketEx(cType, 2, 500);
             if(0>=iRecvFact)
@@ -417,7 +427,7 @@ namespace MediaCloud
             if(0xaf!=(uint8_t)cType[1])
                 continue;
 
-            log_info(g_pLogHelper, "recv a packet from grid server"); 
+           // log_info(g_pLogHelper, "recv a packet from grid server"); 
             iRecvFact = m_tcpChannel.RecvPacketEx((char*)&uiRecvPackLenTmp, 2, 100);
 
             iProtoType=(uiRecvPackLenTmp[0]>>4);
