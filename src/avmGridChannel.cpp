@@ -236,9 +236,21 @@ namespace MediaCloud
        if(iType!=GridProtoTypeStream) 
             return;
 
-       log_info(g_pLogHelper, "recv media packet. len:%d", uiRecvPackLen); 
         //process data stream
-        
+        GridProtoStream gpStream; 
+        GridProtocol::ParseProtocol(pRecvPack, uiRecvPackLen, iType, &gpStream);
+        log_info(g_pLogHelper, "recv media packet. session:%s datalen:%d ", GUIDToString(*((T_GUID*)gpStream.sessionId.ptr)).c_str(), gpStream.data.length); 
+      
+        //find the session
+        PT_CAVMSESSION pSession=m_mapSession[(uint8_t*)gpStream.sessionId.ptr];
+        if(NULL==pSession)
+        {
+            log_info(g_pLogHelper, "not find session. session:%s datalen:%d ", GUIDToString(*((T_GUID*)gpStream.sessionId.ptr)).c_str()); 
+            return;
+        }
+
+        pSession->ProcessRecvPacket(gpStream);
+/*
         //call daiyue's api to get frameid streamtype frametype user's identity
 
         //call yanjun's api to get mediainfo struct
@@ -254,6 +266,7 @@ namespace MediaCloud
  
         MediaInfo mediainfo;
         m_streamFrame.ParseDownloadFrame((unsigned char*)pRecvPack, ihpspOutSize, &mediainfo, this);
+*/
     }
 
     int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)

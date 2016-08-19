@@ -55,7 +55,9 @@ namespace MediaCloud
         pthread_t   m_idWorkThread;
         bool        m_bStopFlag;
 
+        
         StreamFrame m_streamFrame;
+                
         
 //        MAP_PT_USERJOINMSG m_mapUserJoinMsg;        
         MAP_PT_CAVMSESSION m_mapSession;

@@ -3,6 +3,8 @@
 #include "avmSession.h"
 #include <picturemixer.hpp>
 #include <unistd.h>
+#include "clock.h"
+#include "Log.h"
 
 #define AVM_LESS_AUDIO_DURATION_LEN      100
 #define AVM_LESS_VIDEO_DURATION_LEN      100
@@ -190,13 +192,20 @@ namespace MediaCloud
     CAVMSession::CAVMSession():m_pLeadingPeer(NULL)
                                 ,m_usPeerCount(0)
                                 ,m_pAVMMixer(NULL)
+                                ,m_stmAssembler(this)
     {
-
+        memset(m_pSessionID, 0, AVM_SESSION_ID_LEN);
     }
 
     CAVMSession::~CAVMSession()
     {
 
+    }
+
+    void CAVMSession::SetSessionID(uint8_t* pSessionID)
+    {
+        memcpy(m_pSessionID, pSessionID, AVM_SESSION_ID_LEN);
+        m_strSessionID = GUIDToString(*((T_GUID*)m_pSessionID));
     }
 
     void CAVMSession::SetAudioParamType(T_AUDIOPARAM& tAudioParam)
@@ -1086,6 +1095,88 @@ namespace MediaCloud
         return bRtn;
     }
 
+    void CAVMSession::HandleRGridFrameRecved(const StmAssembler::Frame &frame)
+    {
+        MediaInfo mInfo;
+        mInfo.identity = frame.identity;
+        if(0==frame.stmtype)
+            mInfo.nStreamType=eAudio;
+        else
+            mInfo.nStreamType=eVideo;
+        mInfo.frameId=frame.fid;
+        
+        log_info(g_pLogHelper, "RGrid construct a frame. sessionid%s: identity:%d fid:%d stmtype:%d datalen:%d", m_strSessionID.c_str(), 
+                            mInfo.identity, mInfo.frameId, mInfo.nStreamType, frame.length); 
+        m_streamFrame.ParseDownloadFrame((uint8_t*)frame.payload, frame.length, &mInfo, this);
+    }
 
+    int CAVMSession::HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo)
+    {
+        CAVMNetPeer* pPeer=NULL;
+        pPeer=FindPeer(mInfo->identity);
+        if(NULL==pPeer)
+        {
+            log_info(g_pLogHelper, "not found peer in session. sessionid%s: identity:%d ", m_strSessionID.c_str(), mInfo->identity); 
+            return -1;
+        }
+
+        //add the data to peer cache
+        if(eAudio==mInfo->nStreamType)
+        {
+            PT_AUDIONETFRAME pAudioNetFrame = new T_AUDIONETFRAME;
+            pAudioNetFrame->pData=pData;
+            pAudioNetFrame->uiDataLen=nSize;
+            pAudioNetFrame->uiDuration = nSize/(mInfo->audio.nSampleRate*mInfo->audio.nChannel*mInfo->audio.nBitPerSample);  //need to set
+            pAudioNetFrame->uiIdentity = mInfo->identity;
+            pAudioNetFrame->uiPayloadType=0;
+            pAudioNetFrame->uiTimeStamp=mInfo->audio.nTimeStamp;
+            pAudioNetFrame->pMediaInfo=mInfo;
+                        
+            pPeer->AddAudioData(pAudioNetFrame); 
+        }
+        else if(eVideo==mInfo->nStreamType)
+        {
+            PT_VIDEONETFRAME pVideoNetFrame = new T_VIDEONETFRAME;
+            switch(mInfo->video.nType)
+            {
+            case eSPSFrame :
+                     pVideoNetFrame->iFrameType.h264= kVideoSPSFrame;
+                     break;
+            case ePPSFrame :
+                     pVideoNetFrame->iFrameType.h264= kVideoPPSFrame;
+                     break;
+            case eIDRFrame:
+                     pVideoNetFrame->iFrameType.h264= kVideoIDRFrame;
+                     break;
+            case eIFrame:
+                     pVideoNetFrame->iFrameType.h264= kVideoIFrame;
+                     break;
+            case ePFrame:
+                     pVideoNetFrame->iFrameType.h264= kVideoPFrame;
+                     break;
+            case eBFrame:
+                     pVideoNetFrame->iFrameType.h264= kVideoBFrame;
+                     break;
+            default:
+                     pVideoNetFrame->iFrameType.h264= kVideoUnknowFrame;
+                     break;
+           }
+           //pVideoNetFrame->iFrameType = mInfo->video.nType;
+           pVideoNetFrame->pData = pData;
+           pVideoNetFrame->uiDuration=1000/mInfo->video.nFrameRate;
+           pVideoNetFrame->uiDataLen=nSize;
+           pVideoNetFrame->uiIdentity = mInfo->identity;
+           pVideoNetFrame->uiPayloadType=0;
+           pVideoNetFrame->uiTimeStamp=mInfo->video.nDtsTimeStamp;
+           pVideoNetFrame->usFrameIndex=mInfo->frameId;
+           pVideoNetFrame->pMediaInfo=mInfo;
+           pPeer->AddVideoData(pVideoNetFrame);                               
+       }
+    }
+
+    void CAVMSession::ProcessRecvPacket(GridProtoStream& gpStream)
+    {
+        m_stmAssembler.HandleRGridStream(gpStream.data.ptr, gpStream.data.length, cppcmn::Now()); 
+    }
 
 }

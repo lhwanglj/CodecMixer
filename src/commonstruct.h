@@ -32,6 +32,7 @@ using namespace std;
 using namespace MediaCloud;
 
 #define AVM_MAX_IP_LEN  16
+#define AVM_SESSION_ID_LEN  16
 #define AVM_VERSION_STRING "1.0.0.1"
 
 

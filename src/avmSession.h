@@ -4,6 +4,12 @@
 #include "avmnetpeer.h"
 #include "avmmixer.h"
 #include "commonstruct.h"
+#include "rgridproto.h"
+#include "stmassembler.h"
+#include "hpsp/streamframe.hpp"
+
+using namespace hpsp; 
+using namespace MComp;
 
 namespace MediaCloud
 {
@@ -40,12 +46,13 @@ namespace MediaCloud
     typedef std::list<PT_AUDIO_DEC_DATA> LST_PT_AUDIO_DEC_DATA;
     typedef LST_PT_AUDIO_DEC_DATA::iterator ITR_LST_PT_AUDIO_DEC_DATA;    
     
-    class CAVMSession
+    class CAVMSession : public StmAssembler::IDelegate , public IFrameSyncCallBack
     {
     public:
         CAVMSession();
         ~CAVMSession();
-        
+
+        void SetSessionID(uint8_t* pSessionID);        
         void SetCodecMixer(CAVMMixer* pMixer);
 
         bool AddPeer(PT_CCNUSER pUser);
@@ -68,7 +75,7 @@ namespace MediaCloud
 
  //       void MixVideoFrameAndSend(uint32_t usTSFound);            
         void MixVideoFrameAndSend(PT_VIDEONETFRAME pVDFLeading, LST_PT_VIDEONETFRAME& lstVDFMinor);            
-
+        void ProcessRecvPacket(GridProtoStream& gpStream);   
         //int GetAudioTimeStamp(LST_UINT32 lstTS);
         //int GetVideoTimeStamp(LST_UINT32 lstTS);
 
@@ -84,8 +91,13 @@ namespace MediaCloud
         bool StartProcessVideoThread();
         void StopProcessVideoThread();
         
+        virtual void HandleRGridFrameRecved(const StmAssembler::Frame &frame);
+        virtual int HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo);
 
     private:
+        uint8_t    m_pSessionID[AVM_SESSION_ID_LEN];
+        string      m_strSessionID;
+
         CAVMMixer* m_pAVMMixer;
         CAVMNetPeer*    m_pPeers[AVM_MAX_NETPEER_SIZE];
         uint16_t        m_usPeerCount;
@@ -100,7 +112,9 @@ namespace MediaCloud
 
         pthread_t   m_idProcessVideoThread;
         bool        m_bStopProcessVideoThreadFlag;
-
+        
+        StmAssembler m_stmAssembler;
+        StreamFrame  m_streamFrame;
     };
 
 }

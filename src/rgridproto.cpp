@@ -223,7 +223,7 @@ int GridProtocol::SerializeInSessionBean(
 	// client bean
 	ptr = SerializeU64(beanid, ptr);
 	ptr = SerializeGridName(sender, senderlen, ptr);
-	ptr = SerializeU16(GridProtoBeanTypeRouterStatus, ptr);
+	ptr = SerializeU16(GridProtoBeanTypeInSession, ptr);
 	*ptr = 0; ptr++;  // age
 	ptr++;  // reserved
 

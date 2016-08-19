@@ -1,6 +1,7 @@
 
 #include <unistd.h>
 #include "avmnetpeer.h"
+#include "Log.h"
 
 
 namespace MediaCloud
@@ -154,6 +155,8 @@ namespace MediaCloud
                 DecAudioNetFrame(ptAudioNetFrame);
                 InsertAudioDecFrame(ptAudioNetFrame);
                 m_pCurAudioNetFrame=ptAudioNetFrame;
+                log_info(g_pLogHelper, "decode first audio frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                            ptAudioNetFrame->pMediaInfo->frameId, ptAudioNetFrame->uiTimeStamp, ptAudioNetFrame->uiDataLen );
                 return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
             }
             else
@@ -164,18 +167,25 @@ namespace MediaCloud
                     DecAudioNetFrame(ptAudioNetFrame);
                     InsertAudioDecFrame(ptAudioNetFrame);
                     m_pCurAudioNetFrame=ptAudioNetFrame;
+                    log_info(g_pLogHelper, "decode next audio frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                            ptAudioNetFrame->pMediaInfo->frameId, ptAudioNetFrame->uiTimeStamp, ptAudioNetFrame->uiDataLen );
                     return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
                 }
                 else
                 {
                     //wait a moment for the next correct audio net frame
                     if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE > m_fqAudioNetFrame.SlotCount())
-                        return FRAMEQUEUE_AUDIO::VisitorRes::Stop;
+                    {
+                         log_info(g_pLogHelper, "waiting next audio frame, identity:%d curfid:%d ts:%d", m_uiUserIdentity, m_pCurAudioNetFrame->pMediaInfo->frameId, m_pCurAudioNetFrame->uiTimeStamp );
+                         return FRAMEQUEUE_AUDIO::VisitorRes::Stop;
+                    }
                     
                     //wait a long time direct decode the next audio net frame
                     DecAudioNetFrame(ptAudioNetFrame);
                     InsertAudioDecFrame(ptAudioNetFrame);
                     m_pCurAudioNetFrame=ptAudioNetFrame;
+                    log_info(g_pLogHelper, "wait too longer decode next audio frame, identity:%d curfid:%d ts:%s", m_uiUserIdentity,
+                                 m_pCurAudioNetFrame->pMediaInfo->frameId,  m_pCurAudioNetFrame->uiTimeStamp );                        
                     return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
                 }
             }
@@ -196,10 +206,15 @@ namespace MediaCloud
             PT_VIDEONETFRAME pVideoNetFrame=*reinterpret_cast<T_VIDEONETFRAME**>(pSlot->body);
             if(NULL==m_pCurVideoNetFrame)
             {
-                DecVideoNetFrame(pVideoNetFrame);
-                InsertVideoDecFrame(pVideoNetFrame);
-                m_pCurVideoNetFrame=pVideoNetFrame;
-                return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
+                if(eIDRFrame==pVideoNetFrame->pMediaInfo->video.nType || eIFrame==pVideoNetFrame->pMediaInfo->video.nType)
+                {
+                    DecVideoNetFrame(pVideoNetFrame);
+                    InsertVideoDecFrame(pVideoNetFrame);
+                    m_pCurVideoNetFrame=pVideoNetFrame;
+                    log_info(g_pLogHelper, "decode first video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                            pVideoNetFrame->pMediaInfo->frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
+                }
+                return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;                
             }
             else
             {
@@ -208,16 +223,28 @@ namespace MediaCloud
                     DecVideoNetFrame(pVideoNetFrame);
                     InsertVideoDecFrame(pVideoNetFrame);
                     m_pCurVideoNetFrame=pVideoNetFrame;
+                    log_info(g_pLogHelper, "decode next video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                            pVideoNetFrame->pMediaInfo->frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
                     return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
                 }
                 else
                 {
                     if(AVM_MAX_VIDEO_FRAMEQUEUE_SIZE > m_fqVideoNetFrame.SlotCount())
+                    {
+                        log_info(g_pLogHelper, "waiting next video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                            m_pCurVideoNetFrame->pMediaInfo->frameId, m_pCurVideoNetFrame->uiTimeStamp, m_pCurVideoNetFrame->uiDataLen );
                         return FRAMEQUEUE_VIDEO::VisitorRes::Stop;
+                    }
 
-                    DecVideoNetFrame(pVideoNetFrame);
-                    InsertVideoDecFrame(pVideoNetFrame);
-                    m_pCurVideoNetFrame=pVideoNetFrame;
+                    if(eIDRFrame==pVideoNetFrame->pMediaInfo->video.nType || eIFrame==pVideoNetFrame->pMediaInfo->video.nType)
+                    {
+                        DecVideoNetFrame(pVideoNetFrame);
+                        InsertVideoDecFrame(pVideoNetFrame);
+                        m_pCurVideoNetFrame=pVideoNetFrame;
+
+                        log_info(g_pLogHelper, "wait too long decode next video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                            m_pCurVideoNetFrame->pMediaInfo->frameId, m_pCurVideoNetFrame->uiTimeStamp, m_pCurVideoNetFrame->uiDataLen );
+                    }
                     return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
                 }
             }  
@@ -542,14 +569,19 @@ namespace MediaCloud
            if(bIsNew) 
             {
                 *reinterpret_cast<T_AUDIONETFRAME**>(slot->body) = ptAudioNetFrame; 
+                log_info(g_pLogHelper, "insert a new audio frame. identity:%d fid:%d ts:%d", m_uiUserIdentity,  ptAudioNetFrame->pMediaInfo->frameId, ptAudioNetFrame->uiTimeStamp); 
             }
             else
             {
+                //exist the same frame in the queue
+                log_info(g_pLogHelper, "insert audio frame failed(existed). identity:%d  fid:%d ts:%d", m_uiUserIdentity, ptAudioNetFrame->pMediaInfo->frameId, ptAudioNetFrame->uiTimeStamp); 
                 ReleaseAudioNetFrame(ptAudioNetFrame);
             }
         }
         else
         {
+            //the frame is too old 
+            log_info(g_pLogHelper, "insert audio frame failed(too old). identity:%d fid:%d ts:%d", m_uiUserIdentity,   ptAudioNetFrame->pMediaInfo->frameId, ptAudioNetFrame->uiTimeStamp); 
             ReleaseAudioNetFrame(ptAudioNetFrame);
         } 
 
@@ -575,12 +607,21 @@ namespace MediaCloud
         if(nullptr!=slot)
         {
            if(bIsNew) 
+            {
                 *reinterpret_cast<T_VIDEONETFRAME**>(slot->body)=ptVideoNetFrame;
+                log_info(g_pLogHelper, "insert a new video frame successed. identity:%d fid:%d ts:%d", m_uiUserIdentity,  ptVideoNetFrame->pMediaInfo->frameId, ptVideoNetFrame->uiTimeStamp); 
+            }
             else
+            {
+                log_info(g_pLogHelper, "insert a new video frame failed(existed). identity:%d fid:%d ts:%d", m_uiUserIdentity,  ptVideoNetFrame->pMediaInfo->frameId, ptVideoNetFrame->uiTimeStamp); 
                 ReleaseVideoNetFrame(ptVideoNetFrame);
+            }
         }
         else
+        {
+            log_info(g_pLogHelper, "insert a new video frame(too old). identity:%d fid:%d ts:%d", m_uiUserIdentity,  ptVideoNetFrame->pMediaInfo->frameId, ptVideoNetFrame->uiTimeStamp); 
             ReleaseVideoNetFrame(ptVideoNetFrame);
+        }
  
         bRtn=true;
         return bRtn;        
