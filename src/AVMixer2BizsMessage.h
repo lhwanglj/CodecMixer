@@ -34,6 +34,8 @@ void protobuf_ShutdownFile_AVMixer2BizsMessage_2eproto();
 class CCNState;
 class CCNUser;
 class CCNNotify;
+class CCMigrationSessions;
+class CCSessionReleaseNotify;
 class CCNMessage;
 
 // ===================================================================
@@ -317,21 +319,31 @@ class CCNNotify : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedPtrField< ::CCNUser >*
       mutable_user();
 
+  // required uint32 timeout = 4;
+  inline bool has_timeout() const;
+  inline void clear_timeout();
+  static const int kTimeoutFieldNumber = 4;
+  inline ::google::protobuf::uint32 timeout() const;
+  inline void set_timeout(::google::protobuf::uint32 value);
+
   // @@protoc_insertion_point(class_scope:CCNNotify)
  private:
   inline void set_has_sessionid();
   inline void clear_has_sessionid();
   inline void set_has_config();
   inline void clear_has_config();
+  inline void set_has_timeout();
+  inline void clear_has_timeout();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* sessionid_;
   ::std::string* config_;
   ::google::protobuf::RepeatedPtrField< ::CCNUser > user_;
+  ::google::protobuf::uint32 timeout_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_AVMixer2BizsMessage_2eproto();
   friend void protobuf_AssignDesc_AVMixer2BizsMessage_2eproto();
@@ -339,6 +351,182 @@ class CCNNotify : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static CCNNotify* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class CCMigrationSessions : public ::google::protobuf::Message {
+ public:
+  CCMigrationSessions();
+  virtual ~CCMigrationSessions();
+
+  CCMigrationSessions(const CCMigrationSessions& from);
+
+  inline CCMigrationSessions& operator=(const CCMigrationSessions& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CCMigrationSessions& default_instance();
+
+  void Swap(CCMigrationSessions* other);
+
+  // implements Message ----------------------------------------------
+
+  CCMigrationSessions* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CCMigrationSessions& from);
+  void MergeFrom(const CCMigrationSessions& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated bytes session = 1;
+  inline int session_size() const;
+  inline void clear_session();
+  static const int kSessionFieldNumber = 1;
+  inline const ::std::string& session(int index) const;
+  inline ::std::string* mutable_session(int index);
+  inline void set_session(int index, const ::std::string& value);
+  inline void set_session(int index, const char* value);
+  inline void set_session(int index, const void* value, size_t size);
+  inline ::std::string* add_session();
+  inline void add_session(const ::std::string& value);
+  inline void add_session(const char* value);
+  inline void add_session(const void* value, size_t size);
+  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& session() const;
+  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_session();
+
+  // @@protoc_insertion_point(class_scope:CCMigrationSessions)
+ private:
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::RepeatedPtrField< ::std::string> session_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_AVMixer2BizsMessage_2eproto();
+  friend void protobuf_AssignDesc_AVMixer2BizsMessage_2eproto();
+  friend void protobuf_ShutdownFile_AVMixer2BizsMessage_2eproto();
+
+  void InitAsDefaultInstance();
+  static CCMigrationSessions* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class CCSessionReleaseNotify : public ::google::protobuf::Message {
+ public:
+  CCSessionReleaseNotify();
+  virtual ~CCSessionReleaseNotify();
+
+  CCSessionReleaseNotify(const CCSessionReleaseNotify& from);
+
+  inline CCSessionReleaseNotify& operator=(const CCSessionReleaseNotify& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CCSessionReleaseNotify& default_instance();
+
+  void Swap(CCSessionReleaseNotify* other);
+
+  // implements Message ----------------------------------------------
+
+  CCSessionReleaseNotify* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CCSessionReleaseNotify& from);
+  void MergeFrom(const CCSessionReleaseNotify& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required bytes sessionid = 1;
+  inline bool has_sessionid() const;
+  inline void clear_sessionid();
+  static const int kSessionidFieldNumber = 1;
+  inline const ::std::string& sessionid() const;
+  inline void set_sessionid(const ::std::string& value);
+  inline void set_sessionid(const char* value);
+  inline void set_sessionid(const void* value, size_t size);
+  inline ::std::string* mutable_sessionid();
+  inline ::std::string* release_sessionid();
+  inline void set_allocated_sessionid(::std::string* sessionid);
+
+  // @@protoc_insertion_point(class_scope:CCSessionReleaseNotify)
+ private:
+  inline void set_has_sessionid();
+  inline void clear_has_sessionid();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* sessionid_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_AVMixer2BizsMessage_2eproto();
+  friend void protobuf_AssignDesc_AVMixer2BizsMessage_2eproto();
+  friend void protobuf_ShutdownFile_AVMixer2BizsMessage_2eproto();
+
+  void InitAsDefaultInstance();
+  static CCSessionReleaseNotify* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -414,20 +602,44 @@ class CCNMessage : public ::google::protobuf::Message {
   inline ::CCNNotify* release_notify();
   inline void set_allocated_notify(::CCNNotify* notify);
 
+  // optional .CCMigrationSessions migrate_sessions = 3;
+  inline bool has_migrate_sessions() const;
+  inline void clear_migrate_sessions();
+  static const int kMigrateSessionsFieldNumber = 3;
+  inline const ::CCMigrationSessions& migrate_sessions() const;
+  inline ::CCMigrationSessions* mutable_migrate_sessions();
+  inline ::CCMigrationSessions* release_migrate_sessions();
+  inline void set_allocated_migrate_sessions(::CCMigrationSessions* migrate_sessions);
+
+  // optional .CCSessionReleaseNotify session_release_notify = 4;
+  inline bool has_session_release_notify() const;
+  inline void clear_session_release_notify();
+  static const int kSessionReleaseNotifyFieldNumber = 4;
+  inline const ::CCSessionReleaseNotify& session_release_notify() const;
+  inline ::CCSessionReleaseNotify* mutable_session_release_notify();
+  inline ::CCSessionReleaseNotify* release_session_release_notify();
+  inline void set_allocated_session_release_notify(::CCSessionReleaseNotify* session_release_notify);
+
   // @@protoc_insertion_point(class_scope:CCNMessage)
  private:
   inline void set_has_state();
   inline void clear_has_state();
   inline void set_has_notify();
   inline void clear_has_notify();
+  inline void set_has_migrate_sessions();
+  inline void clear_has_migrate_sessions();
+  inline void set_has_session_release_notify();
+  inline void clear_has_session_release_notify();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::CCNState* state_;
   ::CCNNotify* notify_;
+  ::CCMigrationSessions* migrate_sessions_;
+  ::CCSessionReleaseNotify* session_release_notify_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_AVMixer2BizsMessage_2eproto();
   friend void protobuf_AssignDesc_AVMixer2BizsMessage_2eproto();
@@ -752,6 +964,150 @@ CCNNotify::mutable_user() {
   return &user_;
 }
 
+// required uint32 timeout = 4;
+inline bool CCNNotify::has_timeout() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void CCNNotify::set_has_timeout() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void CCNNotify::clear_has_timeout() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void CCNNotify::clear_timeout() {
+  timeout_ = 0u;
+  clear_has_timeout();
+}
+inline ::google::protobuf::uint32 CCNNotify::timeout() const {
+  return timeout_;
+}
+inline void CCNNotify::set_timeout(::google::protobuf::uint32 value) {
+  set_has_timeout();
+  timeout_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CCMigrationSessions
+
+// repeated bytes session = 1;
+inline int CCMigrationSessions::session_size() const {
+  return session_.size();
+}
+inline void CCMigrationSessions::clear_session() {
+  session_.Clear();
+}
+inline const ::std::string& CCMigrationSessions::session(int index) const {
+  return session_.Get(index);
+}
+inline ::std::string* CCMigrationSessions::mutable_session(int index) {
+  return session_.Mutable(index);
+}
+inline void CCMigrationSessions::set_session(int index, const ::std::string& value) {
+  session_.Mutable(index)->assign(value);
+}
+inline void CCMigrationSessions::set_session(int index, const char* value) {
+  session_.Mutable(index)->assign(value);
+}
+inline void CCMigrationSessions::set_session(int index, const void* value, size_t size) {
+  session_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CCMigrationSessions::add_session() {
+  return session_.Add();
+}
+inline void CCMigrationSessions::add_session(const ::std::string& value) {
+  session_.Add()->assign(value);
+}
+inline void CCMigrationSessions::add_session(const char* value) {
+  session_.Add()->assign(value);
+}
+inline void CCMigrationSessions::add_session(const void* value, size_t size) {
+  session_.Add()->assign(reinterpret_cast<const char*>(value), size);
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+CCMigrationSessions::session() const {
+  return session_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+CCMigrationSessions::mutable_session() {
+  return &session_;
+}
+
+// -------------------------------------------------------------------
+
+// CCSessionReleaseNotify
+
+// required bytes sessionid = 1;
+inline bool CCSessionReleaseNotify::has_sessionid() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CCSessionReleaseNotify::set_has_sessionid() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CCSessionReleaseNotify::clear_has_sessionid() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CCSessionReleaseNotify::clear_sessionid() {
+  if (sessionid_ != &::google::protobuf::internal::kEmptyString) {
+    sessionid_->clear();
+  }
+  clear_has_sessionid();
+}
+inline const ::std::string& CCSessionReleaseNotify::sessionid() const {
+  return *sessionid_;
+}
+inline void CCSessionReleaseNotify::set_sessionid(const ::std::string& value) {
+  set_has_sessionid();
+  if (sessionid_ == &::google::protobuf::internal::kEmptyString) {
+    sessionid_ = new ::std::string;
+  }
+  sessionid_->assign(value);
+}
+inline void CCSessionReleaseNotify::set_sessionid(const char* value) {
+  set_has_sessionid();
+  if (sessionid_ == &::google::protobuf::internal::kEmptyString) {
+    sessionid_ = new ::std::string;
+  }
+  sessionid_->assign(value);
+}
+inline void CCSessionReleaseNotify::set_sessionid(const void* value, size_t size) {
+  set_has_sessionid();
+  if (sessionid_ == &::google::protobuf::internal::kEmptyString) {
+    sessionid_ = new ::std::string;
+  }
+  sessionid_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CCSessionReleaseNotify::mutable_sessionid() {
+  set_has_sessionid();
+  if (sessionid_ == &::google::protobuf::internal::kEmptyString) {
+    sessionid_ = new ::std::string;
+  }
+  return sessionid_;
+}
+inline ::std::string* CCSessionReleaseNotify::release_sessionid() {
+  clear_has_sessionid();
+  if (sessionid_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = sessionid_;
+    sessionid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CCSessionReleaseNotify::set_allocated_sessionid(::std::string* sessionid) {
+  if (sessionid_ != &::google::protobuf::internal::kEmptyString) {
+    delete sessionid_;
+  }
+  if (sessionid) {
+    set_has_sessionid();
+    sessionid_ = sessionid;
+  } else {
+    clear_has_sessionid();
+    sessionid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
 // -------------------------------------------------------------------
 
 // CCNMessage
@@ -829,6 +1185,82 @@ inline void CCNMessage::set_allocated_notify(::CCNNotify* notify) {
     set_has_notify();
   } else {
     clear_has_notify();
+  }
+}
+
+// optional .CCMigrationSessions migrate_sessions = 3;
+inline bool CCNMessage::has_migrate_sessions() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CCNMessage::set_has_migrate_sessions() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CCNMessage::clear_has_migrate_sessions() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void CCNMessage::clear_migrate_sessions() {
+  if (migrate_sessions_ != NULL) migrate_sessions_->::CCMigrationSessions::Clear();
+  clear_has_migrate_sessions();
+}
+inline const ::CCMigrationSessions& CCNMessage::migrate_sessions() const {
+  return migrate_sessions_ != NULL ? *migrate_sessions_ : *default_instance_->migrate_sessions_;
+}
+inline ::CCMigrationSessions* CCNMessage::mutable_migrate_sessions() {
+  set_has_migrate_sessions();
+  if (migrate_sessions_ == NULL) migrate_sessions_ = new ::CCMigrationSessions;
+  return migrate_sessions_;
+}
+inline ::CCMigrationSessions* CCNMessage::release_migrate_sessions() {
+  clear_has_migrate_sessions();
+  ::CCMigrationSessions* temp = migrate_sessions_;
+  migrate_sessions_ = NULL;
+  return temp;
+}
+inline void CCNMessage::set_allocated_migrate_sessions(::CCMigrationSessions* migrate_sessions) {
+  delete migrate_sessions_;
+  migrate_sessions_ = migrate_sessions;
+  if (migrate_sessions) {
+    set_has_migrate_sessions();
+  } else {
+    clear_has_migrate_sessions();
+  }
+}
+
+// optional .CCSessionReleaseNotify session_release_notify = 4;
+inline bool CCNMessage::has_session_release_notify() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void CCNMessage::set_has_session_release_notify() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void CCNMessage::clear_has_session_release_notify() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void CCNMessage::clear_session_release_notify() {
+  if (session_release_notify_ != NULL) session_release_notify_->::CCSessionReleaseNotify::Clear();
+  clear_has_session_release_notify();
+}
+inline const ::CCSessionReleaseNotify& CCNMessage::session_release_notify() const {
+  return session_release_notify_ != NULL ? *session_release_notify_ : *default_instance_->session_release_notify_;
+}
+inline ::CCSessionReleaseNotify* CCNMessage::mutable_session_release_notify() {
+  set_has_session_release_notify();
+  if (session_release_notify_ == NULL) session_release_notify_ = new ::CCSessionReleaseNotify;
+  return session_release_notify_;
+}
+inline ::CCSessionReleaseNotify* CCNMessage::release_session_release_notify() {
+  clear_has_session_release_notify();
+  ::CCSessionReleaseNotify* temp = session_release_notify_;
+  session_release_notify_ = NULL;
+  return temp;
+}
+inline void CCNMessage::set_allocated_session_release_notify(::CCSessionReleaseNotify* session_release_notify) {
+  delete session_release_notify_;
+  session_release_notify_ = session_release_notify;
+  if (session_release_notify) {
+    set_has_session_release_notify();
+  } else {
+    clear_has_session_release_notify();
   }
 }
 

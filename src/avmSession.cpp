@@ -202,6 +202,42 @@ namespace MediaCloud
 
     }
 
+    void CAVMSession::DestorySession()
+    {
+        //stop work thread
+        StopProcessAudioThread();
+        StopProcessVideoThread();
+
+        //release user info
+        CAVMNetPeer* pPeerTmp = NULL;
+        for(int i=0; i<m_usPeerCount;i++)        
+        {
+            pPeerTmp=m_pPeers[i];
+            if(NULL!=pPeerTmp)
+            {
+                pPeerTmp->DestoryNP();
+                delete pPeerTmp;
+                pPeerTmp=NULL; 
+            }
+            m_pPeers[i]=pPeerTmp;
+        }
+        m_usPeerCount=0;
+
+        if(NULL!=m_pLeadingPeer)
+        {
+            m_pLeadingPeer->DestoryNP();
+            delete m_pLeadingPeer;
+            m_pLeadingPeer=NULL;
+        }
+
+        if(NULL!=m_pAVMMixer)        
+        {
+            m_pAVMMixer->DestoryMixer();
+            delete m_pAVMMixer;
+            m_pAVMMixer=NULL;
+        }
+    }
+
     void CAVMSession::SetSessionID(uint8_t* pSessionID)
     {
         memcpy(m_pSessionID, pSessionID, AVM_SESSION_ID_LEN);
@@ -301,7 +337,8 @@ namespace MediaCloud
 
         //mix all video frame to one video frame
         MergeVideoFrame(pVideoNetFrameMain, lstVDFMinor);
-        
+       
+/* 
         //free lstVDFMinor
         PT_VIDEONETFRAME pVFLesser=NULL;
         ITR_LST_PT_VIDEONETFRAME itrVFLesser=lstVDFMinor.begin();
@@ -312,6 +349,7 @@ namespace MediaCloud
             itrVFLesser++;
         }  
         lstVDFMinor.clear();
+*/
 
         //encode the mixed video frame
         VideoEncodedList velist;
@@ -329,7 +367,7 @@ namespace MediaCloud
             free(velist.iPicData[ii].iData);
         }
 
-        ReleaseVideoNetFrame(pVideoNetFrameMain);
+  //      ReleaseVideoNetFrame(pVideoNetFrameMain);
     }
 
 /*
@@ -545,12 +583,24 @@ namespace MediaCloud
             pAudioDataInfo[iIndex]._leftLength = pAudioNetFrame->uiDecDataPos;
             pAudioDataInfo[iIndex]._leftData   = (uint8_t*)pAudioNetFrame->pData;
             pAudioDataInfo[iIndex]._enabled    = true;
-            //if(0==iPackNums)
-            //    iPackNums=pAudioNetFrame->m_uiDecDataPos/iPacketLen;
  
             iIndex++;
             itrAudioFrame++;
         }
+        if(NULL==m_pAVMMixer->GetAudioMixer()) 
+        {
+            AudioStreamFormat asf;
+            asf.flag = 0;
+            asf.sampleRate = pAudioNetFrame->pMediaInfo->audio.nSampleRate;
+            asf.sampleBits= pAudioNetFrame->pMediaInfo->audio.nBitPerSample;
+            asf.channelNum = pAudioNetFrame->pMediaInfo->audio.nChannel;
+            if(!m_pAVMMixer->CreateAudioMixer(asf, iFrameCount))
+            {
+                log_info(g_pLogHelper, "create audio mixer object failed. sessionid:%s samplerate:%d samplebit:%d channelnum:%d framecount:%d",
+                            m_strSessionID.c_str(), asf.sampleRate, asf.sampleBits, asf.channelNum, iFrameCount);
+                return -1;
+            }
+        }       
 
         m_pAVMMixer->MixAudioData(pMixData, iPackNums, iPacketLen, 0, pAudioDataInfo, iFrameCount);
         iRtn = iFrameCount;
@@ -687,7 +737,7 @@ namespace MediaCloud
         delete[] pMixData;
         pMixData=NULL;
         
-        ITR_LST_PT_AUDIONETFRAME itrAudioFrame=lstADFMinor.begin();
+    /*  ITR_LST_PT_AUDIONETFRAME itrAudioFrame=lstADFMinor.begin();
         PT_AUDIONETFRAME pAudioNetFrame=NULL;
         while(itrAudioFrame!=lstADFMinor.end())
         {
@@ -696,6 +746,7 @@ namespace MediaCloud
             itrAudioFrame++;            
         }
         lstADFMinor.end();
+    */
     }
 
 /*
@@ -807,8 +858,10 @@ namespace MediaCloud
     
     void* ProcessAudioThreadEntry(void* pParam)
     {
+        pthread_detach(pthread_self());
         CAVMSession* pThis=(CAVMSession*)pParam;
         pThis->ProcessAudioThreadImp();
+        pthread_exit(NULL); 
     }
 
     void* CAVMSession::ProcessAudioThreadImp()
@@ -833,13 +886,16 @@ namespace MediaCloud
     void CAVMSession::StopProcessAudioThread()
     {
         m_bStopProcessAudioThreadFlag=true;
-        pthread_join(m_idProcessAudioThread, NULL);
+        //pthread_join(m_idProcessAudioThread, NULL);
+        pthread_cancel(m_idProcessAudioThread);
     }
 
     void* ProcessVideoThreadEntry(void* pParam)
     {
+        pthread_detach(pthread_self());
         CAVMSession* pThis=(CAVMSession*)pParam;
         pThis->ProcessVideoThreadImp();
+        pthread_exit(NULL); 
     }
 
     void* CAVMSession::ProcessVideoThreadImp()
@@ -865,7 +921,8 @@ namespace MediaCloud
     void CAVMSession::StopProcessVideoThread()
     {
         m_bStopProcessVideoThreadFlag=true;
-        pthread_join(m_idProcessVideoThread, NULL);
+        //pthread_join(m_idProcessVideoThread, NULL);
+        pthread_cancel(m_idProcessVideoThread);
     }
 
 
@@ -878,13 +935,19 @@ namespace MediaCloud
         CAVMNetPeer* pPeerTmp = NULL;
         PT_AUDIONETFRAME pAudioNetFrameTmp=NULL;
         bool bFoundAll=true;
-        
+       
+        Tick tickPeer; 
+        int iWaitCnts=200;
         while(1)
         {
             bFoundAll=true;
             for(int i=1;i<m_usPeerCount;i++)
             {
                 pPeerTmp=m_pPeers[i];
+                tickPeer=pPeerTmp->GetAliveTick();
+                if(tickPeer>m_tickAlive)
+                    m_tickAlive=tickPeer;
+
                 pAudioNetFrameTmp=pPeerTmp->ExistTheSameAudioDecFrame(pAudioNetFrameLeading); 
                 if(NULL==pAudioNetFrameTmp)
                 {
@@ -892,28 +955,38 @@ namespace MediaCloud
                     break;
                 }
             }
-            if(bFoundAll || m_pLeadingPeer->AudioDecQueueIsFull())
+            if(bFoundAll || iWaitCnts<=0)
+            //if(bFoundAll || m_pLeadingPeer->AudioDecQueueIsFull())
                 break;
-
+            iWaitCnts--;
             usleep(10*1000);
         }
         
+        if(!bFoundAll)       
+            return;
+ 
         LST_PT_AUDIONETFRAME lstAudioDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
         {
             pPeerTmp=m_pPeers[i];
             pAudioNetFrameTmp=pPeerTmp->ExistTheSameAudioDecFrameAndPop(pAudioNetFrameLeading);
+            //if not found the frame of other peer's, we only mix the exist frame
             if(NULL==pAudioNetFrameTmp)
             {
                 pAudioNetFrameTmp=pPeerTmp->GetCurAudioDecFrame();
                 if(NULL==pAudioNetFrameTmp)
                     return;
             }
-            pPeerTmp->SetCurAudioDecFrame(pAudioNetFrameTmp);
-            lstAudioDecFrame.push_back(pAudioNetFrameTmp);       
+            else
+                pPeerTmp->SetCurAudioDecFrame(pAudioNetFrameTmp);
+            lstAudioDecFrame.push_back(pAudioNetFrameTmp);
         }
+        
+        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s leading_ts:%d", m_strSessionID.c_str(), pAudioNetFrameLeading->uiTimeStamp);
+        MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
 
-        MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame); 
+        //release audio net frame leading, and other minor's net frame release is in SetCurAudioDecFrame
+        ReleaseAudioNetFrame(pAudioNetFrameLeading); 
     }
 
     void CAVMSession::ProcessDecVideo()
@@ -942,6 +1015,10 @@ namespace MediaCloud
                 usleep(10*1000); 
             }
         }
+        
+        if(!bFoundAll)       
+            return;
+
         LST_PT_VIDEONETFRAME lstVideoDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
         {
@@ -953,10 +1030,14 @@ namespace MediaCloud
                 if(NULL==pVideoNetFrameTmp)
                     return;
             }
-            pPeerTmp->SetCurVideoDecFrame(pVideoNetFrameTmp);
+            else
+                pPeerTmp->SetCurVideoDecFrame(pVideoNetFrameTmp);
             lstVideoDecFrame.push_back(pVideoNetFrameTmp);
         }
+        
+        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%d", m_strSessionID.c_str(), pVideoNetFrameLeading->uiTimeStamp);
         MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);
+        ReleaseVideoNetFrame(pVideoNetFrameLeading);
     }
 
 /*    void CAVMSession::ProcessDecAudio()
@@ -1001,6 +1082,27 @@ namespace MediaCloud
     }
   */
 
+    void CAVMSession::SetConfig(string strConf)
+    {
+        m_strConfig=strConf; 
+    }
+    
+    bool CAVMSession::IsTimeout()
+    {
+        bool bRtn=false;
+        Tick now;
+        now=cppcmn::TickToSeconds(cppcmn::Now());
+        uint32_t uiSpace = now-m_tickAlive;
+        if(uiSpace>m_uiTimeout)
+            bRtn=true;
+        return bRtn;
+    }
+
+    void CAVMSession::SetTimeout(uint32_t uiTimeout)
+    {
+        m_uiTimeout=uiTimeout;
+        m_tickAlive = cppcmn::TickToSeconds(cppcmn::Now());
+    }
     void CAVMSession::SetCodecMixer(CAVMMixer* pMixer)
     {
         m_pAVMMixer=pMixer;

@@ -13,6 +13,7 @@
 #include "../AVSDK/src/Adapter/audiopacketbuffer.h"
 #include "avmmixercomm.h"
 #include "frmqueue.h"
+#include "clock.h"
 
 #define AVM_MAX_AUDIO_FRAMEQUEUE_SIZE     50
 #define AVM_MAX_VIDEO_FRAMEQUEUE_SIZE     50
@@ -191,10 +192,19 @@ namespace MediaCloud
        
         bool InitNP();
         void UninitNP();
-       
+        void DestoryNP();      
+
+        void ReleaseAudioNetQueue();
+        void ReleaseAudioDecQueue();
+        void ReleaseVideoNetQueue();
+        void ReleaseVideoDecQueue();
+ 
         bool CreateAudioDecoder(AudioCodec eType, const AudioCodecParam& acp);
         bool CreateVideoDecoder(VideoCodec eType, const VideoCodecParam& vcp);
-        
+       
+        void DestoryAudioDecoder();
+        void DestoryVideoDecoder();
+ 
         void SetAudioParamType(T_AUDIOPARAM& tAudioParam, E_PARAMTYPE eParamType);        
         void SetVideoParamType(T_VIDEOPARAM& tVideoParam, E_PARAMTYPE eParamType);        
  
@@ -222,6 +232,20 @@ namespace MediaCloud
         static FRAMEQUEUE_AUDIO::VisitorRes ReleaseAudioNetFrameCB(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam);
         static FRAMEQUEUE_AUDIO::VisitorRes ReleaseVideoNetFrameCB(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam);
 
+        static FRAMEQUEUE_AUDIO::VisitorRes LoopReleaseAudioNetFrameCBEntry(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam);
+        FRAMEQUEUE_AUDIO::VisitorRes LoopReleaseAudioNetFrameCBImp(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID);
+       
+
+        static FRAMEQUEUE_AUDIO::VisitorRes LoopReleaseAudioDecFrameCBEntry(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam);
+        FRAMEQUEUE_AUDIO::VisitorRes LoopReleaseAudioDecFrameCBImp(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID);
+
+        static FRAMEQUEUE_VIDEO::VisitorRes LoopReleaseVideoNetFrameCBEntry(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID, void* pParam);
+        FRAMEQUEUE_VIDEO::VisitorRes LoopReleaseVideoNetFrameCBImp(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID);
+
+        static FRAMEQUEUE_VIDEO::VisitorRes LoopReleaseVideoDecFrameCBEntry(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID, void* pParam);
+        FRAMEQUEUE_VIDEO::VisitorRes LoopReleaseVideoDecFrameCBImp(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID);
+
+ 
         static FRAMEQUEUE_AUDIO::VisitorRes LoopAudioNetFrameCBEntry(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam);
         FRAMEQUEUE_AUDIO::VisitorRes LoopAudioNetFrameCBImp(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID);
 
@@ -271,6 +295,7 @@ namespace MediaCloud
 
         bool SetUserIdentity(uint32_t uiIdentity);
         uint32_t GetUserIdentity();
+        cppcmn::Tick GetAliveTick();
  
     private:
         E_PEERROLETYPE     m_ePeerRoleType;
@@ -279,14 +304,16 @@ namespace MediaCloud
         T_VIDEOPARAM       m_tVideoNetParam;
         T_VIDEOPARAM       m_tVideoDecParam; 
 
-
         CriticalSection*   m_csAudioNetFrame;
         CriticalSection*   m_csVideoNetFrame;
 
         PT_AUDIONETFRAME   m_pCurAudioDecFrame;
         PT_VIDEONETFRAME   m_pCurVideoDecFrame;
-        PT_AUDIONETFRAME   m_pCurAudioNetFrame;
-        PT_VIDEONETFRAME   m_pCurVideoNetFrame;
+        //PT_AUDIONETFRAME   m_pCurAudioNetFrame;
+        uint16_t           m_usCurAudioNetFrameID;
+        uint16_t           m_usCurVideoNetFrameID;
+        //PT_VIDEONETFRAME   m_pCurVideoNetFrame;
+
         FRAMEQUEUE_AUDIO   m_fqAudioNetFrame;
         FRAMEQUEUE_VIDEO   m_fqVideoNetFrame;
 //        MAP_PT_AUDIONETFRAME m_mapAudioNetFrame;
@@ -305,7 +332,6 @@ namespace MediaCloud
         AudioCodec      m_eAudioDecodeType;
         int             m_iAudioDecOutSize;
 
-
         CVideoCodec* m_pVideoDecoder;
         VideoCodecParam m_VideoDecodeParam;
         VideoCodec      m_eVideoDecodeType;
@@ -318,8 +344,9 @@ namespace MediaCloud
         
         string m_strUserName;
         uint32_t m_uiUserIdentity;
+        
+        Tick m_tickAlive; 
     };
-
 }
 
 

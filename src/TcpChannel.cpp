@@ -20,6 +20,8 @@ void CTCPChannel::DestoryChannel()
 	DestoryChannelDefault();
 }
 
+
+
 int CTCPChannel::Connect(const char* acpszRemoteIP, unsigned short ausRemotePort)
 {
 	if( NULL == acpszRemoteIP )
@@ -152,7 +154,7 @@ int CTCPChannel::RecvPacket(char* apPacket, int aiPacketLen)
 		iRecvLen += iCurRecvLen;
 	} while ( (0<iCurRecvLen) && (iRecvLen<aiPacketLen) );
 	
-	if (0>iCurRecvLen)
+	if (0>=iCurRecvLen)
 		return iCurRecvLen;
 	
 	return iRecvLen;
@@ -181,36 +183,6 @@ int CTCPChannel::RecvPacketEx(char* apszPacket, int aiPacketLen, int iWaitMillis
 	
 		return iRet;
 	}
-
-//	do 
-//	{
-//#ifdef WIN32
-//		int iRet = select(0, &fdRead, NULL, NULL, &tvWaitTime);
-//		if (0 > iRet)
-//		{
-//			if (WSAEINTR == GetLastError())
-//				continue;
-//		}
-//#else
-//		int iRet = select(m_iSocket+1, &fdRead, NULL, NULL, &tvWaitTime);
-//		if (0 > iRet)
-//		{
-//			if(EINTR == errno || 514 == errno)
-//				continue;
-//		}
-//#endif //WIN32
-//
-//		if(0 >= iRet)
-//		{
-//			if (m_bThreadSafeFlag)
-//				m_muxChannel.UnLock();
-//			if (0==iRet)
-//				return -2;
-//
-//			return iRet;
-//		}
-//
-//	} while (0);
 
 	int iRecvLen = RecvPacket(apszPacket, aiPacketLen);
 	if (m_bThreadSafeFlag)

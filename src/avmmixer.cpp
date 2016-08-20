@@ -59,6 +59,16 @@ namespace MediaCloud
         return bRtn;
     }
 
+    void CAVMMixer::DestoryMixer()
+    {
+        DestoryAudioEncoder();
+        DestoryAudioDecoder();
+        DestoryVideoEncoder();
+        DestoryVideoDecoder();
+        DestoryRtmpAgent();
+        DestoryAudioMixer();        
+        DestoryPicConvert();
+    }
     bool CAVMMixer::AddAVMPeer(CAVMPeer* pAVMPeer)
     {
         bool bRtn = false;
@@ -99,6 +109,16 @@ namespace MediaCloud
         return bRtn;
     }
 
+    void CAVMMixer::DestoryAudioEncoder()
+    {
+        if(NULL!=m_pAudioEncoder)
+        {
+            m_pAudioEncoder->DeInit();
+            ReleaseAudioCodec(m_pAudioEncoder);
+            m_pAudioEncoder=NULL; 
+        }
+    }
+
     bool CAVMMixer::CreateAudioDecoder(AudioCodec eType, const AudioCodecParam& acp)
     {
         bool bRtn = false;
@@ -123,6 +143,16 @@ namespace MediaCloud
         return bRtn;
     }
         
+    void CAVMMixer::DestoryAudioDecoder()
+    {
+        if(NULL!=m_pAudioDecoder)
+        {
+            m_pAudioDecoder->DeInit();
+            ReleaseAudioCodec(m_pAudioDecoder);
+            m_pAudioDecoder=NULL;
+        }
+    }
+
     bool CAVMMixer::CreateVideoEncoder(VideoCodec eType, const VideoCodecParam& vcp)
     {
         bool bRtn = false;
@@ -143,6 +173,16 @@ namespace MediaCloud
  
         bRtn = true;
         return bRtn;
+    }
+
+    void CAVMMixer::DestoryVideoEncoder()
+    {
+        if(NULL!=m_pVideoEncoder)
+        {
+            m_pVideoEncoder->DeInit();
+            ReleaseVideoCodec(m_pVideoEncoder);
+            m_pVideoEncoder=NULL;
+        }
     }
 
     bool CAVMMixer::CreateVideoDecoder(VideoCodec eType, const VideoCodecParam& vcp)
@@ -166,6 +206,15 @@ namespace MediaCloud
         bRtn = true;
         return bRtn;
     }
+    void CAVMMixer::DestoryVideoDecoder()
+    {
+        if(NULL!=m_pVideoDecoder)
+        {
+            m_pVideoDecoder->DeInit();
+            ReleaseVideoCodec(m_pVideoDecoder);
+            m_pVideoDecoder=NULL;
+        }
+    }
 
 
     bool CAVMMixer::CreateRtmpAgent(const char* cpUrl)
@@ -184,6 +233,15 @@ namespace MediaCloud
         return bRtn;
     }
 
+    void CAVMMixer::DestoryRtmpAgent()
+    {
+        if(NULL!=m_pRtmpWriter)
+        {
+            m_pRtmpWriter->Close();
+            DestroyWriter(&m_pRtmpWriter); 
+            m_pRtmpWriter=NULL;
+        }
+    }
 
     bool CAVMMixer::CreateAudioMixer(AudioStreamFormat& asf, int iNumStream)
     {
@@ -201,6 +259,21 @@ namespace MediaCloud
         return bRtn;
     }
 
+    void CAVMMixer::DestoryAudioMixer()
+    {
+        if(NULL!=m_pAudioMixer)
+        {
+            //need add code by yanjun
+            //m_pAudioMixer->
+            m_pAudioMixer=NULL;
+        }
+    }
+
+    AudioMixer* CAVMMixer::GetAudioMixer()
+    {
+        return m_pAudioMixer;
+    }
+
     bool CAVMMixer::CreatePicConvert()
     {
         bool bRtn=false;
@@ -211,6 +284,16 @@ namespace MediaCloud
         m_pPicConvert->Init(NULL);
 
         return bRtn; 
+    }
+
+    void CAVMMixer::DestoryPicConvert()
+    {
+        if(NULL!=m_pPicConvert)
+        {
+            m_pPicConvert->DeInit();
+            ReleaseVideoFilter(m_pPicConvert);
+            m_pPicConvert=NULL; 
+        }
     }
 
     bool CAVMMixer::DecodeAudioData(const unsigned char* pIn, int nInLen, unsigned char* pOut, int* nOutLen)

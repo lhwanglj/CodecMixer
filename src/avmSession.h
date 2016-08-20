@@ -52,8 +52,13 @@ namespace MediaCloud
         CAVMSession();
         ~CAVMSession();
 
+        void DestorySession();
+
         void SetSessionID(uint8_t* pSessionID);        
         void SetCodecMixer(CAVMMixer* pMixer);
+        void SetConfig(string strConf);
+        void SetTimeout(uint32_t uiTimeout);
+        bool IsTimeout();        
 
         bool AddPeer(PT_CCNUSER pUser);
         int  GetPeerSize();
@@ -97,6 +102,8 @@ namespace MediaCloud
     private:
         uint8_t    m_pSessionID[AVM_SESSION_ID_LEN];
         string      m_strSessionID;
+        string      m_strConfig;
+        uint32_t    m_uiTimeout;
 
         CAVMMixer* m_pAVMMixer;
         CAVMNetPeer*    m_pPeers[AVM_MAX_NETPEER_SIZE];
@@ -115,6 +122,7 @@ namespace MediaCloud
         
         StmAssembler m_stmAssembler;
         StreamFrame  m_streamFrame;
+        Tick m_tickAlive;
     };
 
 }

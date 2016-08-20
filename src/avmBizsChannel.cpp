@@ -34,25 +34,21 @@ namespace MediaCloud
         cnMessage.mutable_state()->set_uimax(g_confFile.iMaxRoom);     
     
         int iMsgLen = cnMessage.ByteSize();
-        char* pMsg = new char[iMsgLen];
+        char* pMsg = new char[iMsgLen+4];
        
-        cnMessage.SerializeToArray(pMsg, iMsgLen);
+        cnMessage.SerializeToArray(pMsg+4, iMsgLen);
         
-        char* pSendBuf=new char[iMsgLen+4];
-        char* pSendBufCur=pSendBuf;
+        char* pSendBufCur=pMsg;
         int iSendFact=0;
      
         pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xfa);
         pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xaf);
         pSendBufCur = CBufSerialize::WriteUInt16_Net(pSendBufCur, iMsgLen);
-        pSendBufCur = CBufSerialize::WriteBuf(pSendBufCur, pMsg, iMsgLen);
  
         //int iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen);
-        iSendFact = m_tcpChannel.SendPacket(pSendBuf, iMsgLen+4);
+        iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
         delete[] pMsg;
         pMsg=NULL;
-        delete[] pSendBuf;
-        pSendBuf=NULL;
 
         if(iSendFact==iMsgLen+4)
             bRtn=true;
@@ -60,11 +56,36 @@ namespace MediaCloud
         return bRtn;
     }
 
+    bool CAVMBizsChannel::SendReleaseSessionNotify(uint8_t* bSessionID)
+    {
+        bool bRtn=false;
+        CCNMessage cnMessage;
+        cnMessage.mutable_session_release_notify()->set_sessionid(bSessionID, AVM_SESSION_ID_LEN);
+
+        int iMsgLen=cnMessage.ByteSize();
+
+        char pMsg[32];
+        //char* pMsg=new char[iMsgLen+4];
+        cnMessage.SerializeToArray(pMsg+4, iMsgLen);
+        char* pMsgCur=CBufSerialize::WriteUInt8(pMsg, 0Xfa);
+        pMsgCur=CBufSerialize::WriteUInt8(pMsgCur, 0xaf);
+        pMsgCur=CBufSerialize::WriteUInt16_Net(pMsgCur, iMsgLen);
+
+        int iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
+       // delete[] pMsg;        
+        
+        if(iSendFact=iMsgLen+4)
+            bRtn=true;
+
+        bRtn=true;
+        return bRtn;
+    }
+
     void CAVMBizsChannel::SetGridChannel(CAVMGridChannel* pGrid)
     {
         m_pAVMGridChannel=pGrid;
     }
-    void CAVMBizsChannel::ReleaseUserJoinMsg( PT_USERJOINMSG pUserJoinMsg )
+    void CAVMBizsChannel::ReleaseUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
     {
         if(NULL==pUserJoinMsg)
             return;
@@ -100,6 +121,7 @@ namespace MediaCloud
 
             memcpy(tUserJoinMsg->sessionID, cnNotify.sessionid().c_str(),16);
             tUserJoinMsg->strConfig=cnNotify.config();
+            tUserJoinMsg->uiTimeout=cnNotify.timeout();
             
             log_info(g_pLogHelper, (char*)"recv user join session notify. sessionid:%16x config:%s ", cnNotify.sessionid().c_str(), cnNotify.config().c_str() );
             int iSize=cnNotify.user_size();
@@ -156,7 +178,13 @@ namespace MediaCloud
                 tmPre=tmNow;
             }
         
-            iRecvFact = m_tcpChannel.RecvPacketEx(cType, 2, 500);
+            iRecvFact = m_tcpChannel.RecvPacketEx(cType, 1, 500);
+            if(0==iRecvFact||-1==iRecvFact)
+            {
+                //peer connect the socket
+            }
+
+            iRecvFact = m_tcpChannel.RecvPacketEx(cType+1, 1, 500);
             if(0xfa!=(uint8_t)cType[0])
                 continue;
             if(0xaf!=(uint8_t)cType[1])
@@ -183,6 +211,7 @@ namespace MediaCloud
     {
         bool bRtn=false;
         m_tcpChannel.CreateChannel(NULL, 0);    
+        m_tcpChannel.SetKeepAlive(true, 1,1, 3);
 
         if(0!=m_tcpChannel.Connect(szIP, usPort))
             bRtn=false;

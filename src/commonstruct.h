@@ -106,6 +106,7 @@ typedef struct _tUserJoinMsg
 {
     uint8_t   sessionID[16];
     string    strConfig;
+    uint32_t  uiTimeout;
 //    PT_CCNUSER pUserLeading;
     LST_PT_CCNUSER lstUser;
 }T_USERJOINMSG,*PT_USERJOINMSG;
@@ -116,17 +117,22 @@ typedef struct _ptrGUIDCmp
 {
     bool operator()( const uint8_t* lhs, const uint8_t* rhs ) const
     {
-        uint64_t ulTopl = *lhs;
-        uint64_t ulBoml = *(lhs+4);
-        
-        uint64_t ulTopr = *rhs;
-        uint64_t ulBomr = *(rhs+4);
-       
-        if(ulTopl==ulTopr) 
-            return ulTopr<ulTopr;
+        for(int i=0; i<16; i++)
+        {
+            if(lhs[i] < rhs[i])
+            {
+                return true;
+            }
+            else if(lhs[i] == rhs[i])
+            {
+                continue;
+            }
+            else
+                return false;
+        }
+        return false;
 
-        return ulTopl<ulTopr;
-    }
+   }
 }T_PTRGUIDCMP;
 
 typedef std::map<uint8_t*, PT_USERJOINMSG, _ptrGUIDCmp> MAP_PT_USERJOINMSG;

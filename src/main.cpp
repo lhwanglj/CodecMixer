@@ -218,6 +218,8 @@ int main(int argc, char** argv)
         itr++;
     } 
 
+    CAVMMixer::InitMixer();
+
     //create grid channel to connect grid server
     CAVMGridChannel gridChannel;
     PT_SERVERADDR pGridAddr = g_confFile.tConfSvr.vecstrCSPS.front();
@@ -226,7 +228,7 @@ int main(int argc, char** argv)
         if(gridChannel.CreateAndConnect(pGridAddr->szIP, pGridAddr->usPort))
         {
             log_info(g_pLogHelper, (char*)"connect grid server successed. serverinfo:%s:%d", pGridAddr->szIP, pGridAddr->usPort);
-            gridChannel.Start();
+            //gridChannel.Start();
         }
         else
             log_info(g_pLogHelper, (char*)"connect grid server failed. serverinfo:%s:%d", pGridAddr->szIP, pGridAddr->usPort);
@@ -241,6 +243,8 @@ int main(int argc, char** argv)
         if(bizChannel.CreateAndConnect(pServerAddr->szIP, pServerAddr->usPort))
         {
             log_info(g_pLogHelper, (char*)"connect bizs server successed. serverinfo:%s:%d", pServerAddr->szIP, pServerAddr->usPort );
+            gridChannel.SetBizChannelObj(&bizChannel);
+            gridChannel.Start();
             bizChannel.Start();
         }
         else

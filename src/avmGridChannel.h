@@ -27,6 +27,8 @@ namespace MediaCloud
     typedef std::map<uint8_t*, CAVMSession*, T_PTRGUIDCMP> MAP_PT_CAVMSESSION;
     typedef MAP_PT_CAVMSESSION::iterator ITR_MAP_PT_CAVMSESSION;
 
+
+    class CAVMBizsChannel;
     class CAVMGridChannel: public IFrameSyncCallBack
     {
     public:
@@ -35,6 +37,7 @@ namespace MediaCloud
         
         bool CreateAndConnect(char* szIP, unsigned short usPort);
         void DestoryChannel();        
+        void SetBizChannelObj(CAVMBizsChannel* pObj);
         
         void* GridWorkThreadImp(void* param);
 
@@ -48,6 +51,7 @@ namespace MediaCloud
  
         bool SendKeepalive();
         bool SendBeanInSession();
+        void DestoryOldSession();            
         bool SendLogin();
         
     private:
@@ -55,7 +59,7 @@ namespace MediaCloud
         pthread_t   m_idWorkThread;
         bool        m_bStopFlag;
 
-        
+        CAVMBizsChannel* m_pBizsChannel;
         StreamFrame m_streamFrame;
                 
         

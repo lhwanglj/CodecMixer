@@ -1,5 +1,6 @@
-#include "Channel.h"
 
+#include <linux/tcp.h>
+#include "Channel.h"
 #include "Log.h"
 
 CChannel::CChannel(E_CHANNELTYPE aeChannelType) 	: m_eChannelType(aeChannelType)
@@ -183,6 +184,32 @@ void CChannel::DestoryChannelDefault()
 
 	if (m_bThreadSafeFlag)
 		m_muxChannel.UnLock();	
+}
+
+bool CChannel::SetKeepAlive( bool enable, int idleTimeout, int interval, int probes)
+{
+#ifndef SOL_TCP
+#define SOL_TCP     6   /* TCP level */
+#endif
+    bool bRtn=false;
+    if (enable) 
+    {
+        int idleret = setsockopt(m_iSocket, SOL_TCP, TCP_KEEPIDLE, (void *)&idleTimeout, sizeof(idleTimeout));
+        int invlret = setsockopt(m_iSocket, SOL_TCP, TCP_KEEPINTVL, (void *)&interval, sizeof(interval));
+        int probret = setsockopt(m_iSocket, SOL_TCP, TCP_KEEPCNT, (void *)&probes, sizeof(probes));
+        if (idleret != 0 || invlret != 0 || probret != 0) 
+        {
+            return bRtn;
+        }
+    }
+
+    int keepAlive = enable ? 1 : 0;
+    int ret = setsockopt(m_iSocket, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));
+    if (ret != 0) {
+        return bRtn;
+    }
+    bRtn=true;
+    return bRtn;
 }
 
 int CChannel::SelectDefault( fd_set* readfds, fd_set* writefds, fd_set* exceptfds, struct timeval* timeout)

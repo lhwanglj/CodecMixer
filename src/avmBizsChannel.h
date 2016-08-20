@@ -34,12 +34,14 @@ class CAVMGridChannel;
         bool Start();
         void Stop();
  
-        void ReleaseUserJoinMsg(PT_USERJOINMSG pUserJoinMsg);
-        bool SendKeepalive();
-        void  ProcessJoinSessionMsg(char* pPack, uint16_t usPackLen);
+        bool SendReleaseSessionNotify(uint8_t* bSessionID);
 
         void SetGridChannel(CAVMGridChannel* pGrid);
-
+private:
+        void  ProcessJoinSessionMsg(char* pPack, uint16_t usPackLen);
+        void ReleaseUserJoinMsg(PT_USERJOINMSG pUserJoinMsg);
+        bool SendKeepalive();
+    
     private:
         CTCPChannel m_tcpChannel;
         pthread_t   m_idWorkThread;

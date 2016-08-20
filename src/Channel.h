@@ -14,6 +14,8 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
 #endif //WIN32
 
 #include "BaseTypeDef.h"
@@ -37,6 +39,9 @@ public:
 
 	static bool InitSocket();
 	static void UninitSocket();
+
+
+    bool SetKeepAlive(bool enable, int idleTimeout, int interval, int probes);
 
 	bool  SetNonblocking();
 

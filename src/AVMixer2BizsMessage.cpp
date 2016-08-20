@@ -27,6 +27,12 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* CCNNotify_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   CCNNotify_reflection_ = NULL;
+const ::google::protobuf::Descriptor* CCMigrationSessions_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  CCMigrationSessions_reflection_ = NULL;
+const ::google::protobuf::Descriptor* CCSessionReleaseNotify_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  CCSessionReleaseNotify_reflection_ = NULL;
 const ::google::protobuf::Descriptor* CCNMessage_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   CCNMessage_reflection_ = NULL;
@@ -73,10 +79,11 @@ void protobuf_AssignDesc_AVMixer2BizsMessage_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(CCNUser));
   CCNNotify_descriptor_ = file->message_type(2);
-  static const int CCNNotify_offsets_[3] = {
+  static const int CCNNotify_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNNotify, sessionid_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNNotify, config_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNNotify, user_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNNotify, timeout_),
   };
   CCNNotify_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -89,10 +96,42 @@ void protobuf_AssignDesc_AVMixer2BizsMessage_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(CCNNotify));
-  CCNMessage_descriptor_ = file->message_type(3);
-  static const int CCNMessage_offsets_[2] = {
+  CCMigrationSessions_descriptor_ = file->message_type(3);
+  static const int CCMigrationSessions_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCMigrationSessions, session_),
+  };
+  CCMigrationSessions_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      CCMigrationSessions_descriptor_,
+      CCMigrationSessions::default_instance_,
+      CCMigrationSessions_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCMigrationSessions, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCMigrationSessions, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(CCMigrationSessions));
+  CCSessionReleaseNotify_descriptor_ = file->message_type(4);
+  static const int CCSessionReleaseNotify_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCSessionReleaseNotify, sessionid_),
+  };
+  CCSessionReleaseNotify_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      CCSessionReleaseNotify_descriptor_,
+      CCSessionReleaseNotify::default_instance_,
+      CCSessionReleaseNotify_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCSessionReleaseNotify, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCSessionReleaseNotify, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(CCSessionReleaseNotify));
+  CCNMessage_descriptor_ = file->message_type(5);
+  static const int CCNMessage_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNMessage, state_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNMessage, notify_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNMessage, migrate_sessions_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CCNMessage, session_release_notify_),
   };
   CCNMessage_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -124,6 +163,10 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     CCNNotify_descriptor_, &CCNNotify::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    CCMigrationSessions_descriptor_, &CCMigrationSessions::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    CCSessionReleaseNotify_descriptor_, &CCSessionReleaseNotify::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     CCNMessage_descriptor_, &CCNMessage::default_instance());
 }
 
@@ -136,6 +179,10 @@ void protobuf_ShutdownFile_AVMixer2BizsMessage_2eproto() {
   delete CCNUser_reflection_;
   delete CCNNotify::default_instance_;
   delete CCNNotify_reflection_;
+  delete CCMigrationSessions::default_instance_;
+  delete CCMigrationSessions_reflection_;
+  delete CCSessionReleaseNotify::default_instance_;
+  delete CCSessionReleaseNotify_reflection_;
   delete CCNMessage::default_instance_;
   delete CCNMessage_reflection_;
 }
@@ -149,20 +196,29 @@ void protobuf_AddDesc_AVMixer2BizsMessage_2eproto() {
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\031AVMixer2BizsMessage.proto\"(\n\010CCNState\022"
     "\r\n\005uiCur\030\001 \002(\r\022\r\n\005uiMax\030\002 \002(\r\"(\n\007CCNUser"
-    "\022\013\n\003uid\030\001 \001(\t\022\020\n\010identity\030\002 \001(\r\"F\n\tCCNNo"
+    "\022\013\n\003uid\030\001 \001(\t\022\020\n\010identity\030\002 \001(\r\"W\n\tCCNNo"
     "tify\022\021\n\tsessionid\030\001 \002(\014\022\016\n\006config\030\002 \001(\t\022"
-    "\026\n\004user\030\003 \003(\0132\010.CCNUser\"B\n\nCCNMessage\022\030\n"
-    "\005state\030\001 \001(\0132\t.CCNState\022\032\n\006notify\030\002 \001(\0132"
-    "\n.CCNNotify", 251);
+    "\026\n\004user\030\003 \003(\0132\010.CCNUser\022\017\n\007timeout\030\004 \002(\r"
+    "\"&\n\023CCMigrationSessions\022\017\n\007session\030\001 \003(\014"
+    "\"+\n\026CCSessionReleaseNotify\022\021\n\tsessionid\030"
+    "\001 \002(\014\"\253\001\n\nCCNMessage\022\030\n\005state\030\001 \001(\0132\t.CC"
+    "NState\022\032\n\006notify\030\002 \001(\0132\n.CCNNotify\022.\n\020mi"
+    "grate_sessions\030\003 \001(\0132\024.CCMigrationSessio"
+    "ns\0227\n\026session_release_notify\030\004 \001(\0132\027.CCS"
+    "essionReleaseNotify", 459);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "AVMixer2BizsMessage.proto", &protobuf_RegisterTypes);
   CCNState::default_instance_ = new CCNState();
   CCNUser::default_instance_ = new CCNUser();
   CCNNotify::default_instance_ = new CCNNotify();
+  CCMigrationSessions::default_instance_ = new CCMigrationSessions();
+  CCSessionReleaseNotify::default_instance_ = new CCSessionReleaseNotify();
   CCNMessage::default_instance_ = new CCNMessage();
   CCNState::default_instance_->InitAsDefaultInstance();
   CCNUser::default_instance_->InitAsDefaultInstance();
   CCNNotify::default_instance_->InitAsDefaultInstance();
+  CCMigrationSessions::default_instance_->InitAsDefaultInstance();
+  CCSessionReleaseNotify::default_instance_->InitAsDefaultInstance();
   CCNMessage::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_AVMixer2BizsMessage_2eproto);
 }
@@ -694,6 +750,7 @@ void CCNUser::Swap(CCNUser* other) {
 const int CCNNotify::kSessionidFieldNumber;
 const int CCNNotify::kConfigFieldNumber;
 const int CCNNotify::kUserFieldNumber;
+const int CCNNotify::kTimeoutFieldNumber;
 #endif  // !_MSC_VER
 
 CCNNotify::CCNNotify()
@@ -714,6 +771,7 @@ void CCNNotify::SharedCtor() {
   _cached_size_ = 0;
   sessionid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   config_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  timeout_ = 0u;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -765,6 +823,7 @@ void CCNNotify::Clear() {
         config_->clear();
       }
     }
+    timeout_ = 0u;
   }
   user_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -818,6 +877,22 @@ bool CCNNotify::MergePartialFromCodedStream(
           goto handle_uninterpreted;
         }
         if (input->ExpectTag(26)) goto parse_user;
+        if (input->ExpectTag(32)) goto parse_timeout;
+        break;
+      }
+
+      // required uint32 timeout = 4;
+      case 4: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_timeout:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &timeout_)));
+          set_has_timeout();
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -861,6 +936,11 @@ void CCNNotify::SerializeWithCachedSizes(
       3, this->user(i), output);
   }
 
+  // required uint32 timeout = 4;
+  if (has_timeout()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(4, this->timeout(), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -893,6 +973,11 @@ void CCNNotify::SerializeWithCachedSizes(
         3, this->user(i), target);
   }
 
+  // required uint32 timeout = 4;
+  if (has_timeout()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteUInt32ToArray(4, this->timeout(), target);
+  }
+
   if (!unknown_fields().empty()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -916,6 +1001,13 @@ int CCNNotify::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->config());
+    }
+
+    // required uint32 timeout = 4;
+    if (has_timeout()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->timeout());
     }
 
   }
@@ -960,6 +1052,9 @@ void CCNNotify::MergeFrom(const CCNNotify& from) {
     if (from.has_config()) {
       set_config(from.config());
     }
+    if (from.has_timeout()) {
+      set_timeout(from.timeout());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -977,7 +1072,7 @@ void CCNNotify::CopyFrom(const CCNNotify& from) {
 }
 
 bool CCNNotify::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+  if ((_has_bits_[0] & 0x00000009) != 0x00000009) return false;
 
   return true;
 }
@@ -987,6 +1082,7 @@ void CCNNotify::Swap(CCNNotify* other) {
     std::swap(sessionid_, other->sessionid_);
     std::swap(config_, other->config_);
     user_.Swap(&other->user_);
+    std::swap(timeout_, other->timeout_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
@@ -1005,8 +1101,428 @@ void CCNNotify::Swap(CCNNotify* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
+const int CCMigrationSessions::kSessionFieldNumber;
+#endif  // !_MSC_VER
+
+CCMigrationSessions::CCMigrationSessions()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void CCMigrationSessions::InitAsDefaultInstance() {
+}
+
+CCMigrationSessions::CCMigrationSessions(const CCMigrationSessions& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void CCMigrationSessions::SharedCtor() {
+  _cached_size_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+CCMigrationSessions::~CCMigrationSessions() {
+  SharedDtor();
+}
+
+void CCMigrationSessions::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void CCMigrationSessions::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* CCMigrationSessions::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return CCMigrationSessions_descriptor_;
+}
+
+const CCMigrationSessions& CCMigrationSessions::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_AVMixer2BizsMessage_2eproto();
+  return *default_instance_;
+}
+
+CCMigrationSessions* CCMigrationSessions::default_instance_ = NULL;
+
+CCMigrationSessions* CCMigrationSessions::New() const {
+  return new CCMigrationSessions;
+}
+
+void CCMigrationSessions::Clear() {
+  session_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool CCMigrationSessions::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // repeated bytes session = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_session:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->add_session()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(10)) goto parse_session;
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void CCMigrationSessions::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // repeated bytes session = 1;
+  for (int i = 0; i < this->session_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      1, this->session(i), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* CCMigrationSessions::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // repeated bytes session = 1;
+  for (int i = 0; i < this->session_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteBytesToArray(1, this->session(i), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int CCMigrationSessions::ByteSize() const {
+  int total_size = 0;
+
+  // repeated bytes session = 1;
+  total_size += 1 * this->session_size();
+  for (int i = 0; i < this->session_size(); i++) {
+    total_size += ::google::protobuf::internal::WireFormatLite::BytesSize(
+      this->session(i));
+  }
+
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void CCMigrationSessions::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const CCMigrationSessions* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const CCMigrationSessions*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void CCMigrationSessions::MergeFrom(const CCMigrationSessions& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  session_.MergeFrom(from.session_);
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void CCMigrationSessions::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void CCMigrationSessions::CopyFrom(const CCMigrationSessions& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool CCMigrationSessions::IsInitialized() const {
+
+  return true;
+}
+
+void CCMigrationSessions::Swap(CCMigrationSessions* other) {
+  if (other != this) {
+    session_.Swap(&other->session_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata CCMigrationSessions::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = CCMigrationSessions_descriptor_;
+  metadata.reflection = CCMigrationSessions_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int CCSessionReleaseNotify::kSessionidFieldNumber;
+#endif  // !_MSC_VER
+
+CCSessionReleaseNotify::CCSessionReleaseNotify()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void CCSessionReleaseNotify::InitAsDefaultInstance() {
+}
+
+CCSessionReleaseNotify::CCSessionReleaseNotify(const CCSessionReleaseNotify& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void CCSessionReleaseNotify::SharedCtor() {
+  _cached_size_ = 0;
+  sessionid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+CCSessionReleaseNotify::~CCSessionReleaseNotify() {
+  SharedDtor();
+}
+
+void CCSessionReleaseNotify::SharedDtor() {
+  if (sessionid_ != &::google::protobuf::internal::kEmptyString) {
+    delete sessionid_;
+  }
+  if (this != default_instance_) {
+  }
+}
+
+void CCSessionReleaseNotify::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* CCSessionReleaseNotify::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return CCSessionReleaseNotify_descriptor_;
+}
+
+const CCSessionReleaseNotify& CCSessionReleaseNotify::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_AVMixer2BizsMessage_2eproto();
+  return *default_instance_;
+}
+
+CCSessionReleaseNotify* CCSessionReleaseNotify::default_instance_ = NULL;
+
+CCSessionReleaseNotify* CCSessionReleaseNotify::New() const {
+  return new CCSessionReleaseNotify;
+}
+
+void CCSessionReleaseNotify::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (has_sessionid()) {
+      if (sessionid_ != &::google::protobuf::internal::kEmptyString) {
+        sessionid_->clear();
+      }
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool CCSessionReleaseNotify::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required bytes sessionid = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_sessionid()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void CCSessionReleaseNotify::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // required bytes sessionid = 1;
+  if (has_sessionid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      1, this->sessionid(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* CCSessionReleaseNotify::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // required bytes sessionid = 1;
+  if (has_sessionid()) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        1, this->sessionid(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int CCSessionReleaseNotify::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // required bytes sessionid = 1;
+    if (has_sessionid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->sessionid());
+    }
+
+  }
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void CCSessionReleaseNotify::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const CCSessionReleaseNotify* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const CCSessionReleaseNotify*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void CCSessionReleaseNotify::MergeFrom(const CCSessionReleaseNotify& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_sessionid()) {
+      set_sessionid(from.sessionid());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void CCSessionReleaseNotify::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void CCSessionReleaseNotify::CopyFrom(const CCSessionReleaseNotify& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool CCSessionReleaseNotify::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+
+  return true;
+}
+
+void CCSessionReleaseNotify::Swap(CCSessionReleaseNotify* other) {
+  if (other != this) {
+    std::swap(sessionid_, other->sessionid_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata CCSessionReleaseNotify::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = CCSessionReleaseNotify_descriptor_;
+  metadata.reflection = CCSessionReleaseNotify_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
 const int CCNMessage::kStateFieldNumber;
 const int CCNMessage::kNotifyFieldNumber;
+const int CCNMessage::kMigrateSessionsFieldNumber;
+const int CCNMessage::kSessionReleaseNotifyFieldNumber;
 #endif  // !_MSC_VER
 
 CCNMessage::CCNMessage()
@@ -1017,6 +1533,8 @@ CCNMessage::CCNMessage()
 void CCNMessage::InitAsDefaultInstance() {
   state_ = const_cast< ::CCNState*>(&::CCNState::default_instance());
   notify_ = const_cast< ::CCNNotify*>(&::CCNNotify::default_instance());
+  migrate_sessions_ = const_cast< ::CCMigrationSessions*>(&::CCMigrationSessions::default_instance());
+  session_release_notify_ = const_cast< ::CCSessionReleaseNotify*>(&::CCSessionReleaseNotify::default_instance());
 }
 
 CCNMessage::CCNMessage(const CCNMessage& from)
@@ -1029,6 +1547,8 @@ void CCNMessage::SharedCtor() {
   _cached_size_ = 0;
   state_ = NULL;
   notify_ = NULL;
+  migrate_sessions_ = NULL;
+  session_release_notify_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1040,6 +1560,8 @@ void CCNMessage::SharedDtor() {
   if (this != default_instance_) {
     delete state_;
     delete notify_;
+    delete migrate_sessions_;
+    delete session_release_notify_;
   }
 }
 
@@ -1072,6 +1594,12 @@ void CCNMessage::Clear() {
     if (has_notify()) {
       if (notify_ != NULL) notify_->::CCNNotify::Clear();
     }
+    if (has_migrate_sessions()) {
+      if (migrate_sessions_ != NULL) migrate_sessions_->::CCMigrationSessions::Clear();
+    }
+    if (has_session_release_notify()) {
+      if (session_release_notify_ != NULL) session_release_notify_->::CCSessionReleaseNotify::Clear();
+    }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -1103,6 +1631,34 @@ bool CCNMessage::MergePartialFromCodedStream(
          parse_notify:
           DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
                input, mutable_notify()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(26)) goto parse_migrate_sessions;
+        break;
+      }
+
+      // optional .CCMigrationSessions migrate_sessions = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_migrate_sessions:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_migrate_sessions()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(34)) goto parse_session_release_notify;
+        break;
+      }
+
+      // optional .CCSessionReleaseNotify session_release_notify = 4;
+      case 4: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_session_release_notify:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_session_release_notify()));
         } else {
           goto handle_uninterpreted;
         }
@@ -1140,6 +1696,18 @@ void CCNMessage::SerializeWithCachedSizes(
       2, this->notify(), output);
   }
 
+  // optional .CCMigrationSessions migrate_sessions = 3;
+  if (has_migrate_sessions()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      3, this->migrate_sessions(), output);
+  }
+
+  // optional .CCSessionReleaseNotify session_release_notify = 4;
+  if (has_session_release_notify()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      4, this->session_release_notify(), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1160,6 +1728,20 @@ void CCNMessage::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         2, this->notify(), target);
+  }
+
+  // optional .CCMigrationSessions migrate_sessions = 3;
+  if (has_migrate_sessions()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        3, this->migrate_sessions(), target);
+  }
+
+  // optional .CCSessionReleaseNotify session_release_notify = 4;
+  if (has_session_release_notify()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        4, this->session_release_notify(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -1185,6 +1767,20 @@ int CCNMessage::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->notify());
+    }
+
+    // optional .CCMigrationSessions migrate_sessions = 3;
+    if (has_migrate_sessions()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->migrate_sessions());
+    }
+
+    // optional .CCSessionReleaseNotify session_release_notify = 4;
+    if (has_session_release_notify()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->session_release_notify());
     }
 
   }
@@ -1220,6 +1816,12 @@ void CCNMessage::MergeFrom(const CCNMessage& from) {
     if (from.has_notify()) {
       mutable_notify()->::CCNNotify::MergeFrom(from.notify());
     }
+    if (from.has_migrate_sessions()) {
+      mutable_migrate_sessions()->::CCMigrationSessions::MergeFrom(from.migrate_sessions());
+    }
+    if (from.has_session_release_notify()) {
+      mutable_session_release_notify()->::CCSessionReleaseNotify::MergeFrom(from.session_release_notify());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -1244,6 +1846,9 @@ bool CCNMessage::IsInitialized() const {
   if (has_notify()) {
     if (!this->notify().IsInitialized()) return false;
   }
+  if (has_session_release_notify()) {
+    if (!this->session_release_notify().IsInitialized()) return false;
+  }
   return true;
 }
 
@@ -1251,6 +1856,8 @@ void CCNMessage::Swap(CCNMessage* other) {
   if (other != this) {
     std::swap(state_, other->state_);
     std::swap(notify_, other->notify_);
+    std::swap(migrate_sessions_, other->migrate_sessions_);
+    std::swap(session_release_notify_, other->session_release_notify_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "avmnetpeer.h"
 #include "Log.h"
+#include "stmassembler.h"
 
 
 namespace MediaCloud
@@ -11,17 +12,23 @@ namespace MediaCloud
     {
         delete pObj;
     }
-    CAVMNetPeer::CAVMNetPeer() :m_pCurAudioNetFrame(NULL)
-                                , m_pCurVideoNetFrame(NULL)
+    CAVMNetPeer::CAVMNetPeer() :m_usCurAudioNetFrameID(0)
+                                , m_usCurVideoNetFrameID(0)
                                 , m_pCurAudioDecFrame(NULL)
                                 , m_pCurVideoDecFrame(NULL)
     {
+        InitNP();
     }
 
     CAVMNetPeer::~CAVMNetPeer()
     {
+        UninitNP();
     } 
    
+    Tick CAVMNetPeer::GetAliveTick()
+    {
+        return m_tickAlive;
+    }
     bool CAVMNetPeer::InitNP()
     {
 
@@ -61,7 +68,59 @@ namespace MediaCloud
             SafeDelete(m_csVideoDecFrame);
             m_csVideoDecFrame=NULL;
         }
+    }
 
+    void CAVMNetPeer::DestoryNP()
+    {
+        StopAudioDecThread();
+        StopVideoDecThread(); 
+
+        ReleaseAudioNetQueue();
+        ReleaseAudioDecQueue();
+        ReleaseVideoNetQueue();
+        ReleaseVideoDecQueue();
+
+        if(NULL!=m_pCurAudioDecFrame)
+        {
+            ReleaseAudioNetFrame(m_pCurAudioDecFrame);
+            m_pCurAudioDecFrame=NULL;
+        }
+        if(NULL!=m_pCurVideoDecFrame)
+        {
+            ReleaseVideoNetFrame(m_pCurVideoDecFrame);
+            m_pCurVideoDecFrame=NULL;
+        }        
+
+        DestoryAudioDecoder();
+        DestoryVideoDecoder();
+    }
+ 
+    void CAVMNetPeer::ReleaseAudioNetQueue()
+    {
+        m_csAudioNetFrame->Enter();   
+        m_fqAudioNetFrame.LoopFrames(LoopReleaseAudioNetFrameCBEntry, this);
+        m_csAudioNetFrame->Leave();
+    }
+
+    void CAVMNetPeer::ReleaseAudioDecQueue()
+    {
+        m_csAudioDecFrame->Enter();
+        m_fqAudioDecFrame.LoopFrames(LoopReleaseAudioDecFrameCBEntry, this);
+        m_csAudioDecFrame->Leave();
+    }
+
+    void CAVMNetPeer::ReleaseVideoNetQueue()
+    {
+        m_csVideoNetFrame->Enter();
+        m_fqVideoNetFrame.LoopFrames(LoopReleaseVideoNetFrameCBEntry, this);
+        m_csVideoNetFrame->Leave();
+    }
+
+    void CAVMNetPeer::ReleaseVideoDecQueue()
+    {
+        m_csVideoDecFrame->Enter();
+        m_fqVideoDecFrame.LoopFrames(LoopReleaseVideoDecFrameCBEntry, this);
+        m_csVideoDecFrame->Leave();
     }
 
     bool CAVMNetPeer::SetUserName(string strUserName)
@@ -139,8 +198,10 @@ namespace MediaCloud
     
     void* AudioDecThreadEntry(void* pParam)
     {
+        pthread_detach(pthread_self());
         CAVMNetPeer* pThis=(CAVMNetPeer*)pParam;
         return pThis->AudioDecThreadImp();
+        pthread_exit(NULL);
     }
 
     FRAMEQUEUE_AUDIO::VisitorRes CAVMNetPeer::LoopAudioNetFrameCBImp(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID)
@@ -150,11 +211,11 @@ namespace MediaCloud
             PT_AUDIONETFRAME ptAudioNetFrame = *reinterpret_cast<T_AUDIONETFRAME**>(pSlot->body);
             
             //decode the first audio net frame
-            if(NULL==m_pCurAudioNetFrame)
+            if(0==m_usCurAudioNetFrameID)
             {
                 DecAudioNetFrame(ptAudioNetFrame);
                 InsertAudioDecFrame(ptAudioNetFrame);
-                m_pCurAudioNetFrame=ptAudioNetFrame;
+                m_usCurAudioNetFrameID=ptAudioNetFrame->pMediaInfo->frameId;
                 log_info(g_pLogHelper, "decode first audio frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
                             ptAudioNetFrame->pMediaInfo->frameId, ptAudioNetFrame->uiTimeStamp, ptAudioNetFrame->uiDataLen );
                 return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
@@ -162,11 +223,11 @@ namespace MediaCloud
             else
             {
                 //decode the next correct audio net frame
-                if(ptAudioNetFrame->pMediaInfo->frameId==m_pCurAudioNetFrame->pMediaInfo->frameId+1)
+                if(ptAudioNetFrame->pMediaInfo->frameId==m_usCurAudioNetFrameID+1)
                 {
                     DecAudioNetFrame(ptAudioNetFrame);
                     InsertAudioDecFrame(ptAudioNetFrame);
-                    m_pCurAudioNetFrame=ptAudioNetFrame;
+                    m_usCurAudioNetFrameID=ptAudioNetFrame->pMediaInfo->frameId;
                     log_info(g_pLogHelper, "decode next audio frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
                             ptAudioNetFrame->pMediaInfo->frameId, ptAudioNetFrame->uiTimeStamp, ptAudioNetFrame->uiDataLen );
                     return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
@@ -176,16 +237,15 @@ namespace MediaCloud
                     //wait a moment for the next correct audio net frame
                     if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE > m_fqAudioNetFrame.SlotCount())
                     {
-                         log_info(g_pLogHelper, "waiting next audio frame, identity:%d curfid:%d ts:%d", m_uiUserIdentity, m_pCurAudioNetFrame->pMediaInfo->frameId, m_pCurAudioNetFrame->uiTimeStamp );
+                         log_info(g_pLogHelper, "waiting next audio frame, identity:%d curfid:%d", m_uiUserIdentity, m_usCurAudioNetFrameID );
                          return FRAMEQUEUE_AUDIO::VisitorRes::Stop;
                     }
                     
                     //wait a long time direct decode the next audio net frame
                     DecAudioNetFrame(ptAudioNetFrame);
                     InsertAudioDecFrame(ptAudioNetFrame);
-                    m_pCurAudioNetFrame=ptAudioNetFrame;
-                    log_info(g_pLogHelper, "wait too longer decode next audio frame, identity:%d curfid:%d ts:%s", m_uiUserIdentity,
-                                 m_pCurAudioNetFrame->pMediaInfo->frameId,  m_pCurAudioNetFrame->uiTimeStamp );                        
+                    m_usCurAudioNetFrameID=ptAudioNetFrame->pMediaInfo->frameId;
+                    log_info(g_pLogHelper, "wait too longer decode next audio frame, identity:%d curfid:%d ", m_uiUserIdentity, m_usCurAudioNetFrameID);                        
                     return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
                 }
             }
@@ -204,13 +264,13 @@ namespace MediaCloud
         if(nullptr!=pSlot)
         {
             PT_VIDEONETFRAME pVideoNetFrame=*reinterpret_cast<T_VIDEONETFRAME**>(pSlot->body);
-            if(NULL==m_pCurVideoNetFrame)
+            if(0==m_usCurVideoNetFrameID)
             {
                 if(eIDRFrame==pVideoNetFrame->pMediaInfo->video.nType || eIFrame==pVideoNetFrame->pMediaInfo->video.nType)
                 {
                     DecVideoNetFrame(pVideoNetFrame);
                     InsertVideoDecFrame(pVideoNetFrame);
-                    m_pCurVideoNetFrame=pVideoNetFrame;
+                    m_usCurVideoNetFrameID=pVideoNetFrame->pMediaInfo->frameId;
                     log_info(g_pLogHelper, "decode first video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
                             pVideoNetFrame->pMediaInfo->frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
                 }
@@ -218,11 +278,11 @@ namespace MediaCloud
             }
             else
             {
-                if(pVideoNetFrame->pMediaInfo->frameId==m_pCurVideoNetFrame->pMediaInfo->frameId+1)
+                if(pVideoNetFrame->pMediaInfo->frameId==m_usCurVideoNetFrameID+1)
                 {
                     DecVideoNetFrame(pVideoNetFrame);
                     InsertVideoDecFrame(pVideoNetFrame);
-                    m_pCurVideoNetFrame=pVideoNetFrame;
+                    m_usCurVideoNetFrameID=pVideoNetFrame->pMediaInfo->frameId;
                     log_info(g_pLogHelper, "decode next video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
                             pVideoNetFrame->pMediaInfo->frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
                     return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
@@ -231,8 +291,7 @@ namespace MediaCloud
                 {
                     if(AVM_MAX_VIDEO_FRAMEQUEUE_SIZE > m_fqVideoNetFrame.SlotCount())
                     {
-                        log_info(g_pLogHelper, "waiting next video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
-                            m_pCurVideoNetFrame->pMediaInfo->frameId, m_pCurVideoNetFrame->uiTimeStamp, m_pCurVideoNetFrame->uiDataLen );
+                        log_info(g_pLogHelper, "waiting next video frame, identity:%d fid:%d", m_uiUserIdentity, m_usCurVideoNetFrameID );
                         return FRAMEQUEUE_VIDEO::VisitorRes::Stop;
                     }
 
@@ -240,14 +299,80 @@ namespace MediaCloud
                     {
                         DecVideoNetFrame(pVideoNetFrame);
                         InsertVideoDecFrame(pVideoNetFrame);
-                        m_pCurVideoNetFrame=pVideoNetFrame;
-
-                        log_info(g_pLogHelper, "wait too long decode next video frame, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
-                            m_pCurVideoNetFrame->pMediaInfo->frameId, m_pCurVideoNetFrame->uiTimeStamp, m_pCurVideoNetFrame->uiDataLen );
+                        m_usCurVideoNetFrameID=pVideoNetFrame->pMediaInfo->frameId;
+                        log_info(g_pLogHelper, "wait too long decode next video frame, identity:%d fid:%d", m_uiUserIdentity,  m_usCurVideoNetFrameID);
                     }
                     return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
                 }
             }  
+        }
+        return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
+    }
+
+    FRAMEQUEUE_AUDIO::VisitorRes CAVMNetPeer::LoopReleaseAudioNetFrameCBEntry(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam)
+    {
+        CAVMNetPeer* pThis=(CAVMNetPeer*)pParam;
+        return pThis->LoopReleaseAudioNetFrameCBImp(pSlot, usFrameID);
+    }
+
+    FRAMEQUEUE_AUDIO::VisitorRes CAVMNetPeer::LoopReleaseAudioNetFrameCBImp(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID)
+    {
+        if(nullptr!=pSlot) 
+        {
+            PT_AUDIONETFRAME ptAudioNetFrame = *reinterpret_cast<T_AUDIONETFRAME**>(pSlot->body);
+            if(NULL!=ptAudioNetFrame)
+                ReleaseAudioNetFrame(ptAudioNetFrame);
+        }
+        return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;       
+    }
+    
+    FRAMEQUEUE_AUDIO::VisitorRes CAVMNetPeer::LoopReleaseAudioDecFrameCBEntry(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam)
+    {
+        CAVMNetPeer* pThis=(CAVMNetPeer*)pParam;
+        return pThis->LoopReleaseAudioDecFrameCBImp(pSlot, usFrameID);
+    }
+        
+    FRAMEQUEUE_AUDIO::VisitorRes CAVMNetPeer::LoopReleaseAudioDecFrameCBImp(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID)
+    {
+        if(nullptr!=pSlot)
+        {
+            PT_AUDIONETFRAME ptAudioNetFrame = *reinterpret_cast<T_AUDIONETFRAME**>(pSlot->body);
+            if(NULL!=ptAudioNetFrame)
+                ReleaseAudioNetFrame(ptAudioNetFrame);
+        }
+        return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;
+    }
+
+    FRAMEQUEUE_VIDEO::VisitorRes CAVMNetPeer::LoopReleaseVideoNetFrameCBEntry(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID, void* pParam)
+    {
+        CAVMNetPeer* pThis=(CAVMNetPeer*)pParam;
+        return pThis->LoopReleaseVideoNetFrameCBImp(pSlot, usFrameID);
+    }
+
+    FRAMEQUEUE_VIDEO::VisitorRes CAVMNetPeer::LoopReleaseVideoNetFrameCBImp(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID)
+    {
+        if(nullptr!=pSlot)
+        {
+            PT_VIDEONETFRAME pVNF=*reinterpret_cast<T_VIDEONETFRAME**>(pSlot->body);
+            if(NULL!=pVNF)
+                ReleaseVideoNetFrame(pVNF);
+        }
+        return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue; 
+    }
+
+    FRAMEQUEUE_VIDEO::VisitorRes CAVMNetPeer::LoopReleaseVideoDecFrameCBEntry(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID, void* pParam)
+    {
+        CAVMNetPeer* pThis=(CAVMNetPeer*)pParam;
+        return pThis->LoopReleaseVideoDecFrameCBImp(pSlot, usFrameID);
+    }
+
+    FRAMEQUEUE_VIDEO::VisitorRes CAVMNetPeer::LoopReleaseVideoDecFrameCBImp(FRAMEQUEUE_VIDEO::Slot* pSlot, uint16_t usFrameID)
+    {
+        if(nullptr!=pSlot)
+        {
+            PT_VIDEONETFRAME pVNF=*reinterpret_cast<T_VIDEONETFRAME**>(pSlot->body);
+            if(NULL!=pVNF)
+                ReleaseVideoNetFrame(pVNF);
         }
         return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
     }
@@ -258,13 +383,11 @@ namespace MediaCloud
         return pThis->LoopAudioNetFrameCBImp(pSlot, usFrameID);
     }
 
-
     FRAMEQUEUE_AUDIO::VisitorRes CAVMNetPeer::LoopFoundAudioDecFrameCBEntry(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam)
     {
         PT_FOUNDFRAMETAG ptag=(PT_FOUNDFRAMETAG)pParam;
         CAVMNetPeer* pThis=(CAVMNetPeer*)ptag->pThis;
- 
-         return pThis->LoopFoundAudioDecFrameCBImp(pSlot, usFrameID, ptag);
+        return pThis->LoopFoundAudioDecFrameCBImp(pSlot, usFrameID, ptag);
     }
 
     FRAMEQUEUE_AUDIO::VisitorRes CAVMNetPeer::LoopFoundAudioDecFrameCBImp(FRAMEQUEUE_AUDIO::Slot* pSlot, uint16_t usFrameID, void* pParam)
@@ -323,6 +446,7 @@ namespace MediaCloud
     {
         while(!m_bStopAudioDecThreadFlag)
         {
+            m_tickAlive=cppcmn::TickToSeconds(cppcmn::Now());
             m_csAudioNetFrame->Enter();   
             m_fqAudioNetFrame.LoopFrames(LoopAudioNetFrameCBEntry, this);
             m_csAudioNetFrame->Leave();
@@ -336,16 +460,38 @@ namespace MediaCloud
     bool CAVMNetPeer::DecAudioNetFrame(PT_AUDIONETFRAME pAudioNF)
     {
         bool bRtn=false;
-        if(NULL!=pAudioNF)
-        {
-            pAudioNF->pDecData = new char[m_iAudioDecOutSize];
-            pAudioNF->uiDecDataSize = m_iAudioDecOutSize;
-            pAudioNF->uiDecDataPos = m_iAudioDecOutSize;
-            if(NULL!=m_pAudioDecoder)
-                m_pAudioDecoder->Process((unsigned char*)pAudioNF->pData, pAudioNF->uiDataLen, 
-                                            (unsigned char*)pAudioNF->pDecData, (int*)&pAudioNF->uiDecDataPos );
-        }
+        if(NULL==pAudioNF)
+            return bRtn;
 
+        if(NULL==m_pAudioDecoder)
+        {
+            AudioCodecParam audioFormat;
+            audioFormat.iSampleRate = pAudioNF->pMediaInfo->audio.nSampleRate;
+            audioFormat.iBitsOfSample=pAudioNF->pMediaInfo->audio.nBitPerSample;
+            audioFormat.iNumOfChannels=pAudioNF->pMediaInfo->audio.nChannel;
+            audioFormat.iQuality = 5;
+            audioFormat.iProfile = 29;
+            audioFormat.iHaveAdts = 1;
+
+            audioFormat.ExtParam.iUsevbr = true;
+            audioFormat.ExtParam.iUsedtx = true;
+            audioFormat.ExtParam.iCvbr = true;
+            audioFormat.ExtParam.iUseInbandfec = true;
+            audioFormat.ExtParam.iPacketlossperc = 25;
+            audioFormat.ExtParam.iComplexity = 8;
+            audioFormat.ExtParam.iFrameDuration = pAudioNF->uiDuration;
+            if(!CreateAudioDecoder(kAudioCodecEAAC, audioFormat))
+            {
+                log_err(g_pLogHelper, "create audio decoder failed. identity:%s ramplerate:%d bitsofsameple:%d channelnum:%d duration:%d", m_uiUserIdentity,
+                             audioFormat.iSampleRate, audioFormat.iBitsOfSample, audioFormat.iNumOfChannels, audioFormat.ExtParam.iFrameDuration );
+                return false;
+            }
+       } 
+       pAudioNF->pDecData = new char[m_iAudioDecOutSize];
+       pAudioNF->uiDecDataSize = m_iAudioDecOutSize;
+       pAudioNF->uiDecDataPos = m_iAudioDecOutSize;
+       if(NULL!=m_pAudioDecoder)
+           m_pAudioDecoder->Process((unsigned char*)pAudioNF->pData, pAudioNF->uiDataLen, (unsigned char*)pAudioNF->pDecData, (int*)&pAudioNF->uiDecDataPos);
         bRtn=true;
         return bRtn;
     }
@@ -353,6 +499,17 @@ namespace MediaCloud
     bool CAVMNetPeer::DecVideoNetFrame(PT_VIDEONETFRAME pVideoNetFrame)
     {
         bool bRtn=false;
+        if(NULL==pVideoNetFrame)
+            return bRtn;
+        if(NULL==m_pVideoDecoder)
+        {
+            VideoCodecParam decParam;
+            memset(&decParam, 0, sizeof(VideoCodecParam)); 
+            decParam.feedbackModeOn        = false;
+
+           if(!CreateVideoDecoder(kVideoCodecH264, decParam))
+                return false;
+        }
 
         FrameDesc frameDesc;
         frameDesc.iFrameType.h264 = kVideoUnknowFrame;
@@ -363,6 +520,7 @@ namespace MediaCloud
         PictureData pic;
         memset(&pic, 0, sizeof(PictureData));
         m_pVideoDecoder->Process((const unsigned char*)pVideoNetFrame->pData, pVideoNetFrame->uiDataLen, &frameDesc, &pic);
+       
         pVideoNetFrame->tPicDecInfo.pPlaneData = pic.iPlaneData;
         pVideoNetFrame->tPicDecInfo.iPlaneDataSize = pic.iPlaneDataSize;
         pVideoNetFrame->tPicDecInfo.iPlaneDataPos = pic.iPlaneDataSize;
@@ -411,12 +569,15 @@ namespace MediaCloud
     void CAVMNetPeer::StopAudioDecThread()
     {
         m_bStopAudioDecThreadFlag=true;
-        pthread_join(m_idAudioDecThread, NULL);
+        //pthread_join(m_idAudioDecThread, NULL);
+        pthread_cancel(m_idAudioDecThread);
     }
     void* VideoDecThreadEntry(void* pParam)
     {
+        pthread_detach(pthread_self());
         CAVMNetPeer* pThis=(CAVMNetPeer*)pParam;
         pThis->VideoDecThreadImp();
+        pthread_exit(NULL);
     }
 
     void* CAVMNetPeer::VideoDecThreadImp()
@@ -445,7 +606,8 @@ namespace MediaCloud
     void CAVMNetPeer::StopVideoDecThread()
     {
         m_bStopVideoDecThreadFlag=true;
-        pthread_join(m_idVideoDecThread, NULL);
+        //pthread_join(m_idVideoDecThread, NULL);
+        pthread_cancel(m_idVideoDecThread);
     }
      
     void ReleaseAudioNetFrame(PT_AUDIONETFRAME ptAudioNetFrame)
@@ -456,7 +618,8 @@ namespace MediaCloud
             if(NULL!=ptAudioNetFrame->pData)
             {
                 //need release data using hpso api
-                delete[] (char*)ptAudioNetFrame->pData;
+               hpsp::StmAssembler::ReleaseFramePayload(ptAudioNetFrame->pData);     
+//               delete[] (char*)ptAudioNetFrame->pData;
                 ptAudioNetFrame->pData=NULL;
             }
             if(NULL!=ptAudioNetFrame->pDecData)
@@ -480,7 +643,8 @@ namespace MediaCloud
         {
             if(NULL!=pVideoNF->pData)
             {
-                delete[] (char*)pVideoNF->pData;
+               hpsp::StmAssembler::ReleaseFramePayload(pVideoNF->pData);     
+              // delete[] (char*)pVideoNF->pData;
                 pVideoNF->pData=NULL;
             }
             if(NULL!=pVideoNF->tPicDecInfo.pPlaneData)
@@ -673,6 +837,25 @@ namespace MediaCloud
         return bRtn;
     }
 
+    void CAVMNetPeer::DestoryAudioDecoder()
+    {
+        if(NULL!=m_pAudioDecoder)
+        {
+            m_pAudioDecoder->DeInit();
+            ReleaseAudioCodec(m_pAudioDecoder);
+            m_pAudioDecoder=NULL;
+        }
+    }
+
+    void CAVMNetPeer::DestoryVideoDecoder()
+    {
+        if(NULL!=m_pVideoDecoder)
+        {
+            m_pVideoDecoder->DeInit();
+            ReleaseVideoCodec(m_pVideoDecoder);
+            m_pVideoDecoder=NULL;
+        }
+    }
 /*
 
     void CAVMNetPeer::DecodeAudioData()
@@ -965,6 +1148,12 @@ namespace MediaCloud
 
     void CAVMNetPeer::SetCurAudioDecFrame(PT_AUDIONETFRAME pAudioDecFrame)
     {
+        if(m_pCurAudioDecFrame==pAudioDecFrame||NULL==pAudioDecFrame)
+            return;
+
+        if(NULL!=m_pCurAudioDecFrame)
+            ReleaseAudioNetFrame(m_pCurAudioDecFrame);
+
         m_pCurAudioDecFrame=pAudioDecFrame;    
     }
 
@@ -975,6 +1164,12 @@ namespace MediaCloud
 
     void CAVMNetPeer::SetCurVideoDecFrame(PT_VIDEONETFRAME pVideoDecFrame)
     {
+        if(m_pCurVideoDecFrame==pVideoDecFrame ||NULL==pVideoDecFrame)
+            return;
+
+        if(NULL!=m_pCurVideoDecFrame)
+            ReleaseVideoNetFrame(m_pCurVideoDecFrame);
+            
         m_pCurVideoDecFrame=pVideoDecFrame;
     }
 

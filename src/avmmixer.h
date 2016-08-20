@@ -34,20 +34,30 @@ public:
         ~CAVMMixer();
         
         static bool InitMixer();
+        void DestoryMixer();        
 
         bool AddAVMPeer(CAVMPeer* pAVMPeer);
         
         bool CreateAudioEncoder(AudioCodec eType, const AudioCodecParam& acp);
+        void DestoryAudioEncoder();
         bool CreateAudioDecoder(AudioCodec eType, const AudioCodecParam& acp);
+        void DestoryAudioDecoder();
         
         bool CreateVideoEncoder(VideoCodec eType, const VideoCodecParam& vcp);
+        void DestoryVideoEncoder();
         bool CreateVideoDecoder(VideoCodec eType, const VideoCodecParam& vcp);
+        void DestoryVideoDecoder();
 
         bool CreateRtmpAgent(const char* cpUrl);
+        void DestoryRtmpAgent();
         
         bool CreateAudioMixer(AudioStreamFormat& asf, int iNumStream);
+        void DestoryAudioMixer();        
+
+        AudioMixer* GetAudioMixer(); 
 
         bool CreatePicConvert();
+        void DestoryPicConvert();
 
         bool SendData2RtmpServer(unsigned char* pData, unsigned int iDataSize, MediaInfo* pMediaInfo);
 
