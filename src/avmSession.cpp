@@ -10,190 +10,16 @@
 #define AVM_LESS_VIDEO_DURATION_LEN      100
 #define AVM_LESS_MAX_AUDIO_PACKETS       1
 
+using namespace hpsp; 
 namespace MediaCloud
 {
-
-/*    void AVMProcessAudio(CAVMMixer* pAVMMixer, stdPAVMPeerVector* pPeerVector)
-    {
-        if(NULL==pAVMMixer || NULL==pPeerVector)
-            return;
-
-        int iPeerSize =pPeerVector->size();
-        
-        int iChannels=0;
-        int iSampleRate=0;
-        int iBitsPerSample=0;
-        MediaInfo audioMediaInfo;
-        pAVMMixer->GetAudioMediaInfo(audioMediaInfo);
-    
-        pAVMMixer->GetAudioFromat(iChannels, iSampleRate, iBitsPerSample);
-        
-        int packetLen = iChannels*iBitsPerSample/8;
-        int packnum = 0;
-
-
-        if(0 >= iPeerSize)
-            return;
-        
-        //判断是否有足够的音频数据
-        for(int i=0;i<iPeerSize;i++)
-        {
-            if(AVM_LESS_AUDIO_DURATION_LEN > (*pPeerVector)[i]->AudioDurationInBuffer())
-                return;
-        }
-
-        int iAudioDecOutSize = pAVMMixer->GetAudioDecOutSize();
-        int iAudioDecOutSizeFact = 0;
-       
-        //获取足够的音频数据
-        AudioPacketList* pAudioPacketList= new AudioPacketList[iPeerSize];
-        AudioPacketList* pAudioPacketListCur=NULL;
-        AudioPacket* pAudioPacketTmp=NULL;
-        for(int i=0;i<iPeerSize;i++) 
-        {
-            pAudioPacketListCur = pAudioPacketList+i;
-            for(int j=0;j<AVM_LESS_MAX_AUDIO_PACKETS;j++) 
-            {
-                pAudioPacketTmp = (*pPeerVector)[j]->PopAudioData();
-                if(NULL != pAudioPacketTmp)
-                {
-                    pAudioPacketListCur->push_back(pAudioPacketTmp);
-                }
-            }
-        }
-        
-        int iPacketCounts=0;
-        //解码音频数据
-        LST_PT_AUDIO_DEC_DATA* plstDecData = new LST_PT_AUDIO_DEC_DATA[iPeerSize];
-        LST_PT_AUDIO_DEC_DATA* plstDecDataCur=NULL;
-        for(int i=0;i<iPeerSize;i++)        
-        {
-            plstDecDataCur=plstDecData+i;
-            pAudioPacketListCur = pAudioPacketList+i;
-            iPacketCounts = pAudioPacketListCur->size();
-            for(int j=0;j<iPacketCounts; j++)
-            {
-                pAudioPacketTmp = pAudioPacketListCur->front();
-                pAudioPacketListCur->pop_front();
-                PT_AUDIO_DEC_DATA pAudioDecData = new T_AUDIO_DEC_DATA;
-                pAudioDecData->pData = new unsigned char[iAudioDecOutSize];
-                pAudioDecData->iDataSize = iAudioDecOutSize;
-                pAudioDecData->iDataPos= iAudioDecOutSize;
-                pAudioDecData->timestamp = pAudioPacketTmp->_header._timestamp; 
-                
-                pAVMMixer->DecodeAudioData(pAudioPacketTmp->_payload, pAudioPacketTmp->_payloadLen, pAudioDecData->pData, &(pAudioDecData->iDataPos));
-                plstDecDataCur->push_back(pAudioDecData); 
-                if(0==iAudioDecOutSizeFact)
-                {
-                    iAudioDecOutSizeFact = pAudioDecData->iDataPos;
-                    packnum = iAudioDecOutSizeFact/packetLen;
-                }
-
-                //delete encode data;
-                delete[] pAudioPacketTmp->_payload;
-                delete pAudioPacketTmp;
-                pAudioPacketTmp=NULL;
-            }
-        }
-         
-        //混音
-        PT_AUDIO_DEC_DATA pAudioDecDataTmp=NULL;
-        AudioMixer::AudioDataInfo* pAudioDataInfo = new AudioMixer::AudioDataInfo[iPeerSize];
-        AudioMixer::AudioDataInfo* pAudioDataInfoCur=NULL;
-        LST_PT_AUDIO_DEC_DATA* plstMixData = new LST_PT_AUDIO_DEC_DATA;
-        PT_AUDIO_DEC_DATA pAudioMixData=NULL;
-        for(int i=0;i<iPacketCounts;i++) 
-        {
-            pAudioMixData = new T_AUDIO_DEC_DATA;
-            pAudioMixData->pData = new unsigned char[iAudioDecOutSize];
-            pAudioMixData->iDataPos = iAudioDecOutSize;
-            pAudioMixData->iDataSize = iAudioDecOutSize;
- 
-            for(int j=0;j<iPeerSize;j++)
-            {
-                pAudioDataInfoCur = pAudioDataInfo+j;
-                plstDecDataCur = plstDecData+j;
-                
-                pAudioDecDataTmp = plstDecDataCur->front();
-                plstDecDataCur->pop_front();
- 
-                pAudioDataInfoCur->_bufferSize = pAudioDecDataTmp->iDataPos;
-                pAudioDataInfoCur->_leftLength = pAudioDecDataTmp->iDataPos;
-                pAudioDataInfoCur->_leftData = pAudioDecDataTmp->pData;
-                pAudioDataInfoCur->_enabled = true;
-            }
-            pAudioMixData->timestamp =  pAudioDecDataTmp->timestamp;                  
-            
-            //mix data
-            pAVMMixer->MixAudioData(pAudioMixData->pData, packnum, packetLen, 0,  pAudioDataInfo, iPeerSize ); 
-            plstMixData->push_back(pAudioMixData);
-            
-        }
-       
-        //encode mix data
-        ITR_LST_PT_AUDIO_DEC_DATA itrMixData = plstMixData->begin();        
-        unsigned char* pEncOutBuf=new unsigned char[iAudioDecOutSize];         
-        int iEncOutBufSize=iAudioDecOutSize;
-        while(itrMixData != plstMixData->end())
-        {
-            pAudioMixData = *itrMixData;
-            if(NULL != pAudioMixData)
-            {
-                iEncOutBufSize=iAudioDecOutSize;
-                pAVMMixer->EncodeAudioData((const unsigned char*)pAudioMixData->pData, pAudioMixData->iDataPos, pEncOutBuf, &iEncOutBufSize);
-                memcpy(pAudioMixData->pData, pEncOutBuf, iEncOutBufSize);
-                pAudioMixData->iDataPos = iEncOutBufSize;
-            }
-            itrMixData++;
-        } 
- 
-        //发送到rtmp服务器
-        itrMixData = plstMixData->begin();        
-        while(itrMixData != plstMixData->end())
-        {
-            pAudioMixData = *itrMixData;
-            if(NULL != pAudioMixData)
-            {
-                audioMediaInfo.audio.nTimeStamp = pAudioMixData->timestamp;
-                pAVMMixer->SendData2RtmpServer((unsigned char*)pAudioMixData->pData, pAudioMixData->iDataPos, &audioMediaInfo);
-            }
-            itrMixData++;              
-        }
-
-    }
-    void AVMProcessVideo(CAVMMixer* pAVMMixer, stdPAVMPeerVector* pPeerVector)
-    {
-
-      return;
-
-
-        if(NULL==pAVMMixer || NULL==pPeerVector)
-            return;
-       
-        int iPeerSize =pPeerVector->size();
-        //test all peers has the same time video frame
-        CAVMPeer* pAVMPeer=NULL;        
-        for(int i=0; i<iPeerSize;i++)
-        {
-            pAVMPeer = (*pPeerVector)[i];
-            if(NULL !=pAVMPeer)
-            {
-                if( AVM_LESS_VIDEO_DURATION_LEN > pAVMPeer->VideoDurationInBuffer())
-                    return;
-             }
-        }
-
-        //get video frame from all peers           
-        LST_SP_VIDEO_FRAME* plstVideoFrame=new LST_SP_VIDEO_FRAME[iPeerSize];
-        
-    }
-*/
 
     CAVMSession::CAVMSession():m_pLeadingPeer(NULL)
                                 ,m_usPeerCount(0)
                                 ,m_pAVMMixer(NULL)
-                                ,m_stmAssembler(this)
+                              
     {
+        m_pstmAssembler = new  StmAssembler(this); 
         memset(m_pSessionID, 0, AVM_SESSION_ID_LEN);
     }
 
@@ -928,6 +754,9 @@ namespace MediaCloud
 
     void CAVMSession::ProcessDecAudio()
     {
+        if(NULL==m_pLeadingPeer)
+            return;
+
         PT_AUDIONETFRAME pAudioNetFrameLeading = m_pLeadingPeer->GetFirstAudioDecFrame();    
         if(NULL==pAudioNetFrameLeading)
             return;
@@ -991,6 +820,9 @@ namespace MediaCloud
 
     void CAVMSession::ProcessDecVideo()
     {
+        if(NULL==m_pLeadingPeer)
+            return;
+
         PT_VIDEONETFRAME pVideoNetFrameLeading = m_pLeadingPeer->GetFirstVideoDecFrame();
         if(NULL==pVideoNetFrameLeading)
             return;
@@ -1278,7 +1110,7 @@ namespace MediaCloud
 
     void CAVMSession::ProcessRecvPacket(GridProtoStream& gpStream)
     {
-        m_stmAssembler.HandleRGridStream(gpStream.data.ptr, gpStream.data.length, cppcmn::Now()); 
+        m_pstmAssembler->HandleRGridStream(gpStream.data.ptr, gpStream.data.length, cppcmn::Now()); 
     }
 
 }

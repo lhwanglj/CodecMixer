@@ -125,7 +125,7 @@ LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
                     ./src/fast_decode.cpp\
                     ./src/fecrepo2_8_200.cpp\
                     ./src/stmrecver.cpp\
-                    ./src/stmassemblerImp.cpp\
+                    ./src/cppcmn.cpp\
 					./src/main.cpp
                    
 

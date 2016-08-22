@@ -42,7 +42,7 @@ namespace MediaCloud
         if(iPackLen==iPackLenSnd)
             bRtn=true;
         
-        log_info(g_pLogHelper, (char*)"send login to rgrid. name:%d", g_confFile.tConfSvr.strName.c_str());
+        log_info(g_pLogHelper, (char*)"send login to rgrid. name:%d sendlen:%d", g_confFile.tConfSvr.strName.c_str(), iPackLenSnd);
         return bRtn; 
     }
 
@@ -253,26 +253,14 @@ namespace MediaCloud
         pSession->ProcessRecvPacket(gpStream);
 /*
         //call daiyue's api to get frameid streamtype frametype user's identity
-
         //call yanjun's api to get mediainfo struct
-
-        unsigned int identity;
-        int   nStreamType;
-        int          nProfile;//value assign with codec
-        // only valid for downlink stream, start from random number
-        unsigned short frameId;
-
-        char* phpspOut=pRecvPack;
-        int ihpspOutSize=uiRecvPackLen;
- 
-        MediaInfo mediainfo;
-        m_streamFrame.ParseDownloadFrame((unsigned char*)pRecvPack, ihpspOutSize, &mediainfo, this);
 */
     }
 
     int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
     {
         CAVMSession* pExist = m_mapSession[pUserJoinMsg->sessionID];
+
         char szIdentity[16];
         if(NULL==pExist)
         {
@@ -373,22 +361,6 @@ namespace MediaCloud
         return pExist->GetPeerSize();
     }
 
-/*    int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
-    {
-        //find the user in map
-        PT_USERJOINMSG pExist = m_mapUserJoinMsg[pUserJoinMsg->sessionID];
-        if(NULL == pExist)
-            m_mapUserJoinMsg[pUserJoinMsg->sessionID]=pUserJoinMsg;
-        else 
-        {
-            //merge two list 
-            pExist->lstUser.merge(pUserJoinMsg->lstUser, ptrCCNUserCmp); 
-        }
-        return pExist->lstUser.size();
-    }
-*/
-
-
     void CAVMGridChannel::DestoryOldSession()
     {
          bool bRtn=false;
@@ -422,6 +394,7 @@ namespace MediaCloud
     {
         bool bRtn=false;
         ITR_MAP_PT_CAVMSESSION itr=m_mapSession.begin();
+
         CAVMSession* pSession=NULL;
         static uint64_t ullBeanID=0;
         char pPackReq[128];
@@ -524,15 +497,24 @@ namespace MediaCloud
         
             iRecvFact = m_tcpChannel.RecvPacketEx(cType, 2, 500);
             
-            if(0==iRecvFact||-1==iRecvFact)
+            if(iRecvFact<=0)
             {
-                //the peer close the connect
+                if(0==iRecvFact||-1==iRecvFact)
+                {
+                    log_err(g_pLogHelper, "rgrid connect failed.peer close the connect ret:%d err:%d", iRecvFact, errno);
+                    DestoryChannel();
+                    CreateAndConnect((char*)m_strRGridSvrIP.c_str(), m_usRGridSvrPort);
+                    //peer connect the socket
+                }
+                else if(-2==iRecvFact) //select timeout
+                {
+                    continue;
+                }
+                
+                log_err(g_pLogHelper, "rgrid connect failed. ret:%d err:%d", iRecvFact, errno);
+                break;
             }
-            if(0>=iRecvFact)
-            {
-                log_info(g_pLogHelper, "recv a pack from grid server, ret:%d", iRecvFact); 
-                continue;
-            }
+
             if(0xfa!=(uint8_t)cType[0])
                 continue;
             if(0xaf!=(uint8_t)cType[1])
@@ -560,8 +542,11 @@ namespace MediaCloud
     {
         bool bRtn=false;
         m_tcpChannel.CreateChannel(NULL, 0);    
-        //m_tcpChannel.SetKeepAlive(true, 1, 1, 3);
-
+        m_tcpChannel.SetKeepAlive(true, 1, 1, 3);
+    
+        m_strRGridSvrIP = szIP;
+        m_usRGridSvrPort = usPort;
+    
         if(0!=m_tcpChannel.Connect(szIP, usPort))
             bRtn=false;
         else

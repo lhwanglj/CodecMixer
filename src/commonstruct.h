@@ -117,8 +117,22 @@ typedef struct _ptrGUIDCmp
 {
     bool operator()( const uint8_t* lhs, const uint8_t* rhs ) const
     {
+        uint8_t l;
+        uint8_t r;
         for(int i=0; i<16; i++)
         {
+            l=lhs[i];
+            r=rhs[i];
+            if(l<r)
+            {
+                return true;
+            }
+            else if(l==r)
+            {
+                continue;
+            }
+
+/*
             if(lhs[i] < rhs[i])
             {
                 return true;
@@ -127,6 +141,7 @@ typedef struct _ptrGUIDCmp
             {
                 continue;
             }
+*/
             else
                 return false;
         }

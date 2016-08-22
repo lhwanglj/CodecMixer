@@ -55,6 +55,9 @@ namespace MediaCloud
         bool SendLogin();
         
     private:
+        string m_strRGridSvrIP;
+        unsigned short m_usRGridSvrPort;
+
         CTCPChannel m_tcpChannel;
         pthread_t   m_idWorkThread;
         bool        m_bStopFlag;
@@ -62,8 +65,6 @@ namespace MediaCloud
         CAVMBizsChannel* m_pBizsChannel;
         StreamFrame m_streamFrame;
                 
-        
-//        MAP_PT_USERJOINMSG m_mapUserJoinMsg;        
         MAP_PT_CAVMSESSION m_mapSession;
     };
 

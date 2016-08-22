@@ -165,7 +165,7 @@ namespace MediaCloud
             printf("create video encoder failed. type:%d\r\n", m_eVideoEncodeType);
             return bRtn;
         } 
-        if(!m_pVideoEncoder->Init(&m_AudioDecodeParam))
+        if(!m_pVideoEncoder->Init(&m_VideoEncodeParam))
         {
             printf("init video encoder failed. type:%d\r\n", m_eVideoEncodeType);
             return bRtn;
@@ -283,6 +283,7 @@ namespace MediaCloud
 
         m_pPicConvert->Init(NULL);
 
+        bRtn=true;
         return bRtn; 
     }
 

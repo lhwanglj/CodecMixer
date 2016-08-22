@@ -446,7 +446,6 @@ namespace MediaCloud
     {
         while(!m_bStopAudioDecThreadFlag)
         {
-            m_tickAlive=cppcmn::TickToSeconds(cppcmn::Now());
             m_csAudioNetFrame->Enter();   
             m_fqAudioNetFrame.LoopFrames(LoopAudioNetFrameCBEntry, this);
             m_csAudioNetFrame->Leave();
@@ -716,10 +715,11 @@ namespace MediaCloud
         if(NULL==ptAudioNetFrame)
             return bRtn;  
      
+        m_tickAlive=cppcmn::TickToSeconds(cppcmn::Now());
         ScopedCriticalSection cs(m_csAudioNetFrame);
 
          //adjust timestamp
-        uint32_t uiConsult  =ptAudioNetFrame->uiTimeStamp/ptAudioNetFrame->uiDuration;
+        uint32_t uiConsult=ptAudioNetFrame->uiTimeStamp/ptAudioNetFrame->uiDuration;
         uint32_t uiRemainder=ptAudioNetFrame->uiTimeStamp%ptAudioNetFrame->uiDuration;
         if(uiRemainder>ptAudioNetFrame->uiDuration/2)
              ptAudioNetFrame->uiTimeStampAdjust = (uiConsult+1)*ptAudioNetFrame->uiDuration;

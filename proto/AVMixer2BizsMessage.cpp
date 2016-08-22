@@ -2,7 +2,7 @@
 // source: AVMixer2BizsMessage.proto
 
 #define INTERNAL_SUPPRESS_PROTOBUF_FIELD_DEPRECATION
-#include "AVMixer2BizsMessage.h"
+#include "AVMixer2BizsMessage.pb.h"
 
 #include <algorithm>
 

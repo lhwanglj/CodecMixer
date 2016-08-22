@@ -41,8 +41,12 @@ private:
         void  ProcessJoinSessionMsg(char* pPack, uint16_t usPackLen);
         void ReleaseUserJoinMsg(PT_USERJOINMSG pUserJoinMsg);
         bool SendKeepalive();
+        bool SendLogin();
     
     private:
+        string m_strBizSvrIP;
+        unsigned short m_usBizSvrPort;
+
         CTCPChannel m_tcpChannel;
         pthread_t   m_idWorkThread;
         bool        m_bStopFlag;

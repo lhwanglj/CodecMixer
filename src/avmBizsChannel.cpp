@@ -12,6 +12,7 @@ namespace MediaCloud
 {
 
     CAVMBizsChannel::CAVMBizsChannel() :m_bStopFlag(false)
+                                        , m_pAVMGridChannel(NULL)
     {
     }
 
@@ -23,6 +24,32 @@ namespace MediaCloud
     {
         CAVMBizsChannel* pThis=(CAVMBizsChannel*)param;
         return pThis->BizsWorkThreadImp(param);       
+    }
+
+    bool CAVMBizsChannel::SendLogin()
+    {
+        bool bRtn=false;
+        CCNMessage cnMsg;
+        cnMsg.mutable_login()->set_ccname(g_confFile.strName);
+        
+        int iMsgLen=cnMsg.ByteSize();
+        char pMsg[32];
+
+        char* pSendBufCur=pMsg;
+        int iSendFact=0;
+
+        pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xfa);
+        pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xaf);
+        pSendBufCur = CBufSerialize::WriteUInt16_Net(pSendBufCur, iMsgLen);
+        cnMsg.SerializeToArray(pSendBufCur, iMsgLen);
+
+        iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
+
+        log_info(g_pLogHelper, "send login to biz server. name:%s sendlen:%d msglen:%d", g_confFile.strName.c_str(), iSendFact, iMsgLen); 
+        if(iSendFact==iMsgLen+4)
+            bRtn=true;
+
+        return bRtn;
     }
 
     bool CAVMBizsChannel::SendKeepalive()
@@ -65,14 +92,13 @@ namespace MediaCloud
         int iMsgLen=cnMessage.ByteSize();
 
         char pMsg[32];
-        //char* pMsg=new char[iMsgLen+4];
         cnMessage.SerializeToArray(pMsg+4, iMsgLen);
         char* pMsgCur=CBufSerialize::WriteUInt8(pMsg, 0Xfa);
         pMsgCur=CBufSerialize::WriteUInt8(pMsgCur, 0xaf);
         pMsgCur=CBufSerialize::WriteUInt16_Net(pMsgCur, iMsgLen);
 
         int iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
-       // delete[] pMsg;        
+        log_info(g_pLogHelper, (char*)"send release session notify to biz server. sessionid:%s  msgLen:%d sendlen:%d", GUIDToString(*((T_GUID*)bSessionID)).c_str(), iMsgLen, iSendFact);
         
         if(iSendFact=iMsgLen+4)
             bRtn=true;
@@ -112,12 +138,15 @@ namespace MediaCloud
         CCNMessage cnMsg;
         cnMsg.ParseFromArray(pPack, usPackLen);
         
+        PT_USERJOINMSG tUserJoinMsg=NULL;
         char szIdentity[16];
         if(cnMsg.has_notify())
         {
             const CCNNotify& cnNotify = cnMsg.notify();
             string strConfig = cnNotify.config(); 
             PT_USERJOINMSG tUserJoinMsg=new T_USERJOINMSG;
+            if(16!=cnNotify.sessionid().size())
+                log_err(g_pLogHelper, "user join in session from bizs server failed. sessinLen:%d", cnNotify.sessionid().size());
 
             memcpy(tUserJoinMsg->sessionID, cnNotify.sessionid().c_str(),16);
             tUserJoinMsg->strConfig=cnNotify.config();
@@ -132,28 +161,15 @@ namespace MediaCloud
                 const CCNUser& cnUser=cnNotify.user(i);
                 pCCNUser->strUserName = cnUser.uid();
                 pCCNUser->uiIdentity = cnUser.identity();
-                /*
-                pCCNUser->pPeer = new CAVMNetPeer();
-                
-                memset(szIdentity, 0, 16);
-                snprintf(szIdentity, 16, "%d", pCCNUser->uiIdentity);
-                if(string::npos!=strConfig.find(szIdentity))
-                {
-                    pCCNUser->pPeer->SetRoleType(E_AVM_PEERROLE_LEADING);
-                    tUserJoinMsg->pUserLeading = pCCNUser;
-                }
-                else
-                    pCCNUser->pPeer->SetRoleType(E_AVM_PEERROLE_MINOR);
-                */
-                 tUserJoinMsg->lstUser.push_back(pCCNUser);
+                tUserJoinMsg->lstUser.push_back(pCCNUser);
                 log_info(g_pLogHelper, (char*)"recv user join session notify. username:%s identity:%d ", pCCNUser->strUserName.c_str(), pCCNUser->uiIdentity);
             }
-        
+
             m_pAVMGridChannel->InsertUserJoinMsg(tUserJoinMsg);
 
+            //SendReleaseSessionNotify(tUserJoinMsg->sessionID);
             //release new ccnuser object and userjoinmsg object
             ReleaseUserJoinMsg(tUserJoinMsg);
-
         }
     }
     void* CAVMBizsChannel::BizsWorkThreadImp(void* param)
@@ -166,25 +182,53 @@ namespace MediaCloud
         uint16_t uiRecvPackLenTmp=0;
         int iRecvFact=0;
         char* pRecvPack=NULL;       
- 
+
+        SendLogin();
+
         while(!m_bStopFlag)
         {
             tmNow = time((time_t*)NULL);
-       
+      
             //send keep alive once per 20s
-            if(2<tmNow-tmPre)
+           /*
+             if(2<tmNow-tmPre)
             {
                 SendKeepalive();
                 tmPre=tmNow;
             }
+            */
         
+            SendKeepalive();
             iRecvFact = m_tcpChannel.RecvPacketEx(cType, 1, 500);
-            if(0==iRecvFact||-1==iRecvFact)
+            if(iRecvFact<=0)
             {
-                //peer connect the socket
+                if(0==iRecvFact||-1==iRecvFact)
+                {
+                    log_err(g_pLogHelper, "biz connect failed.peer close the connect reconnect biz server ret:%d err:%d", iRecvFact, errno);
+                    usleep(500*1000);    
+                    DestoryChannel();
+                    if( CreateAndConnect((char*)m_strBizSvrIP.c_str(), m_usBizSvrPort) )
+                    {
+                        SendLogin();
+                    }
+                    else
+                    {
+                        usleep(2*1000*1000);    
+                    }
+                    continue;
+                    //peer connect the socket
+                }
+                if(-2==iRecvFact)
+                {
+                    //log_err(g_pLogHelper, "biz recv timeout. ret:%d err:%d", iRecvFact, errno);
+                    continue;
+                }
+                
+                log_err(g_pLogHelper, "biz connect failed. ret:%d err:%d", iRecvFact, errno);
+                break;
             }
 
-            iRecvFact = m_tcpChannel.RecvPacketEx(cType+1, 1, 500);
+            iRecvFact = m_tcpChannel.RecvPacket(cType+1, 1);
             if(0xfa!=(uint8_t)cType[0])
                 continue;
             if(0xaf!=(uint8_t)cType[1])
@@ -210,6 +254,10 @@ namespace MediaCloud
     bool CAVMBizsChannel::CreateAndConnect(char* szIP, unsigned short usPort)
     {
         bool bRtn=false;
+
+        m_strBizSvrIP=szIP;
+        m_usBizSvrPort=usPort;
+
         m_tcpChannel.CreateChannel(NULL, 0);    
         m_tcpChannel.SetKeepAlive(true, 1,1, 3);
 

@@ -1,5 +1,6 @@
 #include <map>
 #include <sched.h>
+#include "logging.h"
 #include "mqthread.h"
 #include "sync.h"
 #include "fmtbuffer.h"
@@ -7,11 +8,8 @@
 #include "stmassembler.h"
 #include "stmrecver.h"
 #include "fec.h"
-#include "logging.h"
 
 using namespace cppcmn;
-
-using namespace MediaCloud::Common;
 
 namespace hpsp {
     
@@ -170,11 +168,12 @@ namespace hpsp {
             reginfo.finished = false;
             reginfo.registered = true;
             
-            _thread->SendCommand(CMD_ID_REGISTER, &reginfo, sizeof(RegisterInfo*));
+            RegisterInfo *pregInfo = &reginfo;
+            _thread->SendCommand(CMD_ID_REGISTER, &pregInfo, sizeof(RegisterInfo*));
             while(!reginfo.finished) {
                 sched_yield();
             }
-            //wlj//LogDebug("assembler registered, id %d, delegate %p\n", id, delegate);
+            LogDebug("stmass", "assembler registered, id %d, delegate %p\n", id, delegate);
         }
         
         void UnregisterAssembler(int id)
@@ -185,11 +184,12 @@ namespace hpsp {
             reginfo.finished = false;
             reginfo.registered = false;
             
-            _thread->SendCommand(CMD_ID_REGISTER, &reginfo, sizeof(RegisterInfo*));
+            RegisterInfo *preginfo = &reginfo;
+            _thread->SendCommand(CMD_ID_REGISTER, &preginfo, sizeof(RegisterInfo*));
             while(!reginfo.finished) {
                 sched_yield();
             }
-            //wlj//LogDebug("assembler unregistered, id %d\n", id);
+            LogDebug("stmass","assembler unregistered, id %d\n", id);
         }
         
         void HandleStream(int assemblerId, const uint8_t *data, int length, Tick tick)
@@ -561,7 +561,6 @@ namespace hpsp {
 
 using namespace hpsp;
 
-static int _assemblerId = 0;
 static bool _assemblerInited = false;
 static Mutex _assemblerInitLock;
 static StmRecverThread *_recverThread = nullptr;
@@ -586,13 +585,16 @@ static void InitializeStmThreads()
     if (false == _assemblerInited) {
         ScopedMutexLock slock(_assemblerInitLock);
         if (false == _assemblerInited) {
-            StmRecverThread *recver = new StmRecverThread(&_stmThreadGlue);
-            MQThread *recverthread = MQThread::Create("stmrecver", 0, recver, false);
-            recver->SetThread(recverthread);
+            _recverThread = new StmRecverThread(&_stmThreadGlue);
+            MQThread *recverthread = MQThread::Create("stmrecver", 0, _recverThread, false);
+            _recverThread->SetThread(recverthread);
             
-            StmFecThread *fec = new StmFecThread(&_stmThreadGlue);
-            MQThread *fecthread = MQThread::Create("stmfec", 0, fec, false);
-            fec->SetThread(fecthread);
+            _fecThread = new StmFecThread(&_stmThreadGlue);
+            MQThread *fecthread = MQThread::Create("stmfec", 0, _fecThread, false);
+            _fecThread->SetThread(fecthread);
+            
+            fecthread->Run();
+            recverthread->Run();
             
             _assemblerInited = true;
         }
@@ -600,13 +602,14 @@ static void InitializeStmThreads()
 }
 
 /// StmAssembler
+int _globalAssmeblerId = 1;
 StmAssembler::StmAssembler(IDelegate *delegate)
     : _delegate(delegate)
 {
     Assert(delegate != nullptr);
     InitializeStmThreads();
     
-    _assemblerId = AtomicOperation::Increment(&_assemblerId, 1);
+    _assemblerId = AtomicOperation::Increment(&_globalAssmeblerId, 1);
     _recverThread->RegisterAssembler(_assemblerId, delegate);
 }
 

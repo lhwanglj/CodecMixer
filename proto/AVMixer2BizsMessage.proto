@@ -1,0 +1,42 @@
+message CCNState
+{
+  required uint32 uiCur=1;
+  required uint32 uiMax=2;
+}
+
+message CCNLogin{
+	required string ccname =1;
+}
+
+message CCNUser
+{
+    optional string uid=1;
+    optional uint32 identity=2;
+}
+
+message CCNNotify
+{
+    required bytes sessionid=1;
+    optional string config=2;
+    repeated CCNUser user=3;
+    required uint32 timeout=4;
+}
+
+message CCMigrationSessions
+{
+	repeated bytes session=1;
+}
+
+message CCSessionReleaseNotify
+{
+	required bytes sessionid=1;
+}
+
+message CCNMessage
+{
+    optional CCNState state=1;
+    optional CCNNotify notify=2;
+    optional CCMigrationSessions migrate_sessions=3;
+    optional CCSessionReleaseNotify session_release_notify=4;
+    optional CCNLogin login=5;
+}

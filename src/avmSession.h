@@ -120,7 +120,7 @@ namespace MediaCloud
         pthread_t   m_idProcessVideoThread;
         bool        m_bStopProcessVideoThreadFlag;
         
-        StmAssembler m_stmAssembler;
+        StmAssembler* m_pstmAssembler;
         StreamFrame  m_streamFrame;
         Tick m_tickAlive;
     };

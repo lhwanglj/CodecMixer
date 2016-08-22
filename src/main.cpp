@@ -21,6 +21,7 @@
 #include "avmBizsChannel.h"
 #include "avmGridChannel.h"
 #include "rapidjson/document.h"
+#include "cppcmn.h"
 
 
 #define AVM_MAX_CONF_RECV_PACK_SIZE    1024*1024
@@ -131,11 +132,14 @@ int main(int argc, char** argv)
  
     if(!CCommonStruct::ReadConfig(argv[1]))
         return 0;
-     
+    
+ 
     string strLogFile = g_confFile.strLogDir;
     strLogFile += "codecmix.log";
     g_pLogHelper = open_logfile(strLogFile.c_str());
     log_info(g_pLogHelper, (char*)"main: codecmix start.........................");
+
+    signal(SIGPIPE,SIG_IGN);
 
     //connect conf server, get config json
     CTCPChannel tcpChannel;
@@ -218,10 +222,12 @@ int main(int argc, char** argv)
         itr++;
     } 
 
-    CAVMMixer::InitMixer();
+    CAVMMixer::InitMixer();   
+    cppcmn::InitializeCppcmn();
 
     //create grid channel to connect grid server
     CAVMGridChannel gridChannel;
+
     PT_SERVERADDR pGridAddr = g_confFile.tConfSvr.vecstrCSPS.front();
     if(NULL!=pGridAddr)
     {
