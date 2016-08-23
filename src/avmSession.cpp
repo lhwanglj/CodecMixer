@@ -64,6 +64,10 @@ namespace MediaCloud
         }
     }
 
+    uint8_t* CAVMSession::GetSessionID()
+    {
+        return m_pSessionID;
+    }
     void CAVMSession::SetSessionID(uint8_t* pSessionID)
     {
         memcpy(m_pSessionID, pSessionID, AVM_SESSION_ID_LEN);
@@ -182,18 +186,19 @@ namespace MediaCloud
         FrameDesc frameDesc;
         frameDesc.iFrameType.h264 = kVideoUnknowFrame;
         frameDesc.iPreFramesMiss = false;
-        frameDesc.iPts           = pVideoNetFrameMain->uiTimeStampAdjust;
+        frameDesc.iPts           = pVideoNetFrameMain->uiTimeStamp;
         memset(&velist, 0, sizeof(VideoEncodedList));
-        m_pAVMMixer->DecodeVideoData((unsigned char*)pVideoNetFrameMain->pData, pVideoNetFrameMain->uiDataLen, &frameDesc,&velist);
-
+        
+        log_info(g_pLogHelper, "encode video data dataptr:%x  len:%d ts:%d", pVideoNetFrameMain->tPicDecInfo.pPlaneData , pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, frameDesc.iPts  );
+        m_pAVMMixer->EncodeVideoData((unsigned char*)pVideoNetFrameMain->tPicDecInfo.pPlaneData, pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, &frameDesc,&velist);
+        //m_pAVMMixer->DecodeVideoData((unsigned char*)pVideoNetFrameMain->pData, pVideoNetFrameMain->uiDataLen, &frameDesc,&velist);
+        
         //send the encoded and mixed video to rtmpserver
         for(int ii=0;ii<velist.iSize;ii++)
         {
             SendVideo2Rtmp(velist.iPicData+ii, pVideoNetFrameMain);
             free(velist.iPicData[ii].iData);
         }
-
-  //      ReleaseVideoNetFrame(pVideoNetFrameMain);
     }
 
 /*
@@ -791,8 +796,8 @@ namespace MediaCloud
             usleep(10*1000);
         }
         
-        if(!bFoundAll)       
-            return;
+//        if(!bFoundAll)       
+//            return;
  
         LST_PT_AUDIONETFRAME lstAudioDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
@@ -830,6 +835,7 @@ namespace MediaCloud
         CAVMNetPeer* pPeerTmp=NULL;
         PT_VIDEONETFRAME pVideoNetFrameTmp=NULL;
         bool bFoundAll=true;
+        int iWaitCnts=200;
         while(1)
         {
             bFoundAll=true;
@@ -842,14 +848,16 @@ namespace MediaCloud
                     bFoundAll=false;
                     break;
                 }
-                if(bFoundAll||m_pLeadingPeer->VideoDecQueueIsFull())
-                    break;
-                usleep(10*1000); 
             }
+            if(bFoundAll||iWaitCnts<=0)
+            //if(bFoundAll||m_pLeadingPeer->VideoDecQueueIsFull())
+                 break;
+            iWaitCnts--;
+            usleep(10*1000); 
         }
         
-        if(!bFoundAll)       
-            return;
+//        if(!bFoundAll)       
+//            return;
 
         LST_PT_VIDEONETFRAME lstVideoDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
@@ -1031,17 +1039,19 @@ namespace MediaCloud
 
     void CAVMSession::HandleRGridFrameRecved(const StmAssembler::Frame &frame)
     {
-        MediaInfo mInfo;
-        mInfo.identity = frame.identity;
+        MediaInfo* pmInfo = new MediaInfo;
+        pmInfo->identity = frame.identity;
         if(0==frame.stmtype)
-            mInfo.nStreamType=eAudio;
+            pmInfo->nStreamType=eAudio;
         else
-            mInfo.nStreamType=eVideo;
-        mInfo.frameId=frame.fid;
+            pmInfo->nStreamType=eVideo;
+        pmInfo->frameId=frame.fid;
         
-        log_info(g_pLogHelper, "RGrid construct a frame. sessionid%s: identity:%d fid:%d stmtype:%d datalen:%d", m_strSessionID.c_str(), 
-                            mInfo.identity, mInfo.frameId, mInfo.nStreamType, frame.length); 
-        m_streamFrame.ParseDownloadFrame((uint8_t*)frame.payload, frame.length, &mInfo, this);
+//        log_info(g_pLogHelper, "RGrid construct a frame. sessionid%s: identity:%d fid:%d stmtype:%d datalen:%d", m_strSessionID.c_str(), 
+//                            pmInfo->identity, pmInfo->frameId, pmInfo->nStreamType, frame.length); 
+        m_streamFrame.ParseDownloadFrame((uint8_t*)frame.payload, frame.length, pmInfo, this);
+
+        hpsp::StmAssembler::ReleaseFramePayload(frame.payload);
     }
 
     int CAVMSession::HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo)
@@ -1057,15 +1067,22 @@ namespace MediaCloud
         //add the data to peer cache
         if(eAudio==mInfo->nStreamType)
         {
+            mInfo->audio.nSampleRate=44100;
+            mInfo->audio.nChannel=2;
+            mInfo->audio.nBitPerSample=16;
+
             PT_AUDIONETFRAME pAudioNetFrame = new T_AUDIONETFRAME;
-            pAudioNetFrame->pData=pData;
+            pAudioNetFrame->pData=new char[nSize];
+            memcpy(pAudioNetFrame->pData, pData, nSize);
             pAudioNetFrame->uiDataLen=nSize;
-            pAudioNetFrame->uiDuration = nSize/(mInfo->audio.nSampleRate*mInfo->audio.nChannel*mInfo->audio.nBitPerSample);  //need to set
+            pAudioNetFrame->uiDuration = nSize*1000*8/(mInfo->audio.nSampleRate*mInfo->audio.nChannel*mInfo->audio.nBitPerSample);  //need to set
             pAudioNetFrame->uiIdentity = mInfo->identity;
             pAudioNetFrame->uiPayloadType=0;
             pAudioNetFrame->uiTimeStamp=mInfo->audio.nTimeStamp;
             pAudioNetFrame->pMediaInfo=mInfo;
                         
+ //           log_info(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d duration:%d ts:%d len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
+ //                                                 mInfo->nStreamType, pAudioNetFrame->uiDuration,  pAudioNetFrame->uiTimeStamp,  nSize); 
             pPeer->AddAudioData(pAudioNetFrame); 
         }
         else if(eVideo==mInfo->nStreamType)
@@ -1096,14 +1113,21 @@ namespace MediaCloud
                      break;
            }
            //pVideoNetFrame->iFrameType = mInfo->video.nType;
-           pVideoNetFrame->pData = pData;
-           pVideoNetFrame->uiDuration=1000/mInfo->video.nFrameRate;
+   
+           pVideoNetFrame->pData = new char[nSize];
+           memcpy(pVideoNetFrame->pData, pData, nSize);
+     
+          if(0<mInfo->video.nFrameRate)
+               pVideoNetFrame->uiDuration=1000/mInfo->video.nFrameRate;
            pVideoNetFrame->uiDataLen=nSize;
            pVideoNetFrame->uiIdentity = mInfo->identity;
            pVideoNetFrame->uiPayloadType=0;
            pVideoNetFrame->uiTimeStamp=mInfo->video.nDtsTimeStamp;
            pVideoNetFrame->usFrameIndex=mInfo->frameId;
            pVideoNetFrame->pMediaInfo=mInfo;
+            
+           log_info(g_pLogHelper, "recv a video frame identity:%d fid:%d frmtype:%d stmtype:%d duration:%d ts:%d len:%d DataPtr:%x", pVideoNetFrame->uiIdentity, mInfo->frameId,mInfo->video.nType,
+                                                  mInfo->nStreamType, pVideoNetFrame->uiDuration,  pVideoNetFrame->uiTimeStamp,  nSize, pVideoNetFrame->pData); 
            pPeer->AddVideoData(pVideoNetFrame);                               
        }
     }

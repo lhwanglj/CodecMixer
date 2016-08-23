@@ -16,22 +16,46 @@ namespace MediaCloud
                                 , m_usCurVideoNetFrameID(0)
                                 , m_pCurAudioDecFrame(NULL)
                                 , m_pCurVideoDecFrame(NULL)
+                                , m_idAudioDecThread(0)
+                                , m_idVideoDecThread(0)
+                                , m_pAudioDecoder(NULL) 
+                                , m_pVideoDecoder(NULL)
+                                , m_bStopAudioDecThreadFlag(false)
+                                , m_bStopVideoDecThreadFlag(false)
+                                , m_strUserName("")
+                                , m_uiUserIdentity(0) 
+                                , m_csAudioNetFrame(NULL)
+                                , m_csVideoNetFrame(NULL)
+                                , m_csAudioDecFrame(NULL)
+                                , m_csVideoDecFrame(NULL)
+                                , m_pVideoNetSPSFrame(NULL)
+                                , m_pVideoNetPPSFrame(NULL)
     {
-        InitNP();
+        m_tickAlive=cppcmn::TickToSeconds(cppcmn::Now());
+//        InitNP();
     }
 
     CAVMNetPeer::~CAVMNetPeer()
     {
-        UninitNP();
+        //UninitNP();
     } 
    
+    PT_VIDEONETFRAME CAVMNetPeer::GetVideoNetSPSFrame()
+    {
+        return m_pVideoNetSPSFrame;
+    }
+
+    PT_VIDEONETFRAME CAVMNetPeer::GetVideoNetPPSFrame()
+    {
+        return m_pVideoNetPPSFrame;
+    }
+
     Tick CAVMNetPeer::GetAliveTick()
     {
         return m_tickAlive;
     }
     bool CAVMNetPeer::InitNP()
     {
-
         bool bRtn=false;
         if(NULL==m_csAudioNetFrame)
             m_csAudioNetFrame=new CriticalSection();
@@ -93,6 +117,8 @@ namespace MediaCloud
 
         DestoryAudioDecoder();
         DestoryVideoDecoder();
+
+        UninitNP();
     }
  
     void CAVMNetPeer::ReleaseAudioNetQueue()
@@ -268,6 +294,8 @@ namespace MediaCloud
             {
                 if(eIDRFrame==pVideoNetFrame->pMediaInfo->video.nType || eIFrame==pVideoNetFrame->pMediaInfo->video.nType)
                 {
+                    DecVideoNetFrame(m_pVideoNetSPSFrame);
+                    DecVideoNetFrame(m_pVideoNetPPSFrame);
                     DecVideoNetFrame(pVideoNetFrame);
                     InsertVideoDecFrame(pVideoNetFrame);
                     m_usCurVideoNetFrameID=pVideoNetFrame->pMediaInfo->frameId;
@@ -280,6 +308,11 @@ namespace MediaCloud
             {
                 if(pVideoNetFrame->pMediaInfo->frameId==m_usCurVideoNetFrameID+1)
                 {
+                    if(eIDRFrame==pVideoNetFrame->pMediaInfo->video.nType || eIFrame==pVideoNetFrame->pMediaInfo->video.nType)
+                    {
+                        DecVideoNetFrame(m_pVideoNetSPSFrame);
+                        DecVideoNetFrame(m_pVideoNetPPSFrame);
+                    }
                     DecVideoNetFrame(pVideoNetFrame);
                     InsertVideoDecFrame(pVideoNetFrame);
                     m_usCurVideoNetFrameID=pVideoNetFrame->pMediaInfo->frameId;
@@ -297,6 +330,8 @@ namespace MediaCloud
 
                     if(eIDRFrame==pVideoNetFrame->pMediaInfo->video.nType || eIFrame==pVideoNetFrame->pMediaInfo->video.nType)
                     {
+                        DecVideoNetFrame(m_pVideoNetSPSFrame);
+                        DecVideoNetFrame(m_pVideoNetPPSFrame);
                         DecVideoNetFrame(pVideoNetFrame);
                         InsertVideoDecFrame(pVideoNetFrame);
                         m_usCurVideoNetFrameID=pVideoNetFrame->pMediaInfo->frameId;
@@ -479,7 +514,7 @@ namespace MediaCloud
             audioFormat.ExtParam.iPacketlossperc = 25;
             audioFormat.ExtParam.iComplexity = 8;
             audioFormat.ExtParam.iFrameDuration = pAudioNF->uiDuration;
-            if(!CreateAudioDecoder(kAudioCodecEAAC, audioFormat))
+            if(!CreateAudioDecoder(kAudioCodecFDKAAC, audioFormat))
             {
                 log_err(g_pLogHelper, "create audio decoder failed. identity:%s ramplerate:%d bitsofsameple:%d channelnum:%d duration:%d", m_uiUserIdentity,
                              audioFormat.iSampleRate, audioFormat.iBitsOfSample, audioFormat.iNumOfChannels, audioFormat.ExtParam.iFrameDuration );
@@ -617,8 +652,8 @@ namespace MediaCloud
             if(NULL!=ptAudioNetFrame->pData)
             {
                 //need release data using hpso api
-               hpsp::StmAssembler::ReleaseFramePayload(ptAudioNetFrame->pData);     
-//               delete[] (char*)ptAudioNetFrame->pData;
+            //   hpsp::StmAssembler::ReleaseFramePayload(ptAudioNetFrame->pData);     
+               delete[] (char*)ptAudioNetFrame->pData;
                 ptAudioNetFrame->pData=NULL;
             }
             if(NULL!=ptAudioNetFrame->pDecData)
@@ -642,8 +677,7 @@ namespace MediaCloud
         {
             if(NULL!=pVideoNF->pData)
             {
-               hpsp::StmAssembler::ReleaseFramePayload(pVideoNF->pData);     
-              // delete[] (char*)pVideoNF->pData;
+               delete[] (char*)pVideoNF->pData;
                 pVideoNF->pData=NULL;
             }
             if(NULL!=pVideoNF->tPicDecInfo.pPlaneData)
@@ -719,12 +753,14 @@ namespace MediaCloud
         ScopedCriticalSection cs(m_csAudioNetFrame);
 
          //adjust timestamp
+/*
         uint32_t uiConsult=ptAudioNetFrame->uiTimeStamp/ptAudioNetFrame->uiDuration;
         uint32_t uiRemainder=ptAudioNetFrame->uiTimeStamp%ptAudioNetFrame->uiDuration;
         if(uiRemainder>ptAudioNetFrame->uiDuration/2)
              ptAudioNetFrame->uiTimeStampAdjust = (uiConsult+1)*ptAudioNetFrame->uiDuration;
         else
              ptAudioNetFrame->uiTimeStampAdjust = (uiConsult+0)*ptAudioNetFrame->uiDuration;
+*/
         
         bool bIsNew=false;
         auto* slot = m_fqAudioNetFrame.Insert(ptAudioNetFrame->pMediaInfo->frameId, bIsNew, ReleaseAudioNetFrameCB, this);
@@ -756,16 +792,34 @@ namespace MediaCloud
     bool CAVMNetPeer::AddVideoData(PT_VIDEONETFRAME ptVideoNetFrame)
     {
         bool bRtn=false;
-
         ScopedCriticalSection cs(m_csVideoNetFrame);
-
+        
+        if(eSPSFrame==ptVideoNetFrame->pMediaInfo->video.nType)
+        {
+            if(NULL!=m_pVideoNetSPSFrame)
+                ReleaseVideoNetFrame(m_pVideoNetSPSFrame);
+            m_pVideoNetSPSFrame=ptVideoNetFrame;
+            bRtn=true;
+            return bRtn;
+        }
+        else if(ePPSFrame==ptVideoNetFrame->pMediaInfo->video.nType )
+        {
+            if(NULL!=m_pVideoNetPPSFrame)
+                ReleaseVideoNetFrame(m_pVideoNetPPSFrame);
+            m_pVideoNetPPSFrame=ptVideoNetFrame;
+            bRtn=true;
+            return bRtn;
+        }
+/*
+        //just get timestamp adjust
         uint32_t uiConsult  =ptVideoNetFrame->uiTimeStamp/ptVideoNetFrame->uiDuration;
         uint32_t uiRemainder=ptVideoNetFrame->uiTimeStamp%ptVideoNetFrame->uiDuration;
         if(uiRemainder>ptVideoNetFrame->uiDuration/2)
             ptVideoNetFrame->uiTimeStampAdjust = (uiConsult+1)*ptVideoNetFrame->uiDuration;
         else
             ptVideoNetFrame->uiTimeStampAdjust = (uiConsult+0)*ptVideoNetFrame->uiDuration;
-        
+  */
+      
         bool bIsNew=false;
         auto* slot=m_fqVideoNetFrame.Insert(ptVideoNetFrame->pMediaInfo->frameId, bIsNew, ReleaseVideoNetFrameCB, this);
         if(nullptr!=slot)

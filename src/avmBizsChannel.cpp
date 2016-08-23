@@ -72,7 +72,7 @@ namespace MediaCloud
         pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xaf);
         pSendBufCur = CBufSerialize::WriteUInt16_Net(pSendBufCur, iMsgLen);
  
-        //int iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen);
+   //   log_info(g_pLogHelper, "send keepalive to biz server. cur:%d max:%d", g_confFile.iCurRoom, g_confFile.iMaxRoom); 
         iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
         delete[] pMsg;
         pMsg=NULL;
@@ -144,15 +144,15 @@ namespace MediaCloud
         {
             const CCNNotify& cnNotify = cnMsg.notify();
             string strConfig = cnNotify.config(); 
-            PT_USERJOINMSG tUserJoinMsg=new T_USERJOINMSG;
+            tUserJoinMsg=new T_USERJOINMSG;
             if(16!=cnNotify.sessionid().size())
                 log_err(g_pLogHelper, "user join in session from bizs server failed. sessinLen:%d", cnNotify.sessionid().size());
 
             memcpy(tUserJoinMsg->sessionID, cnNotify.sessionid().c_str(),16);
             tUserJoinMsg->strConfig=cnNotify.config();
             tUserJoinMsg->uiTimeout=cnNotify.timeout();
-            
-            log_info(g_pLogHelper, (char*)"recv user join session notify. sessionid:%16x config:%s ", cnNotify.sessionid().c_str(), cnNotify.config().c_str() );
+           
+            log_info(g_pLogHelper, (char*)"recv user join session notify. sessionid:%s config:%s ", GUIDToString(*((T_GUID*)tUserJoinMsg->sessionID)).c_str(), cnNotify.config().c_str() );
             int iSize=cnNotify.user_size();
             PT_CCNUSER pCCNUser=NULL;
             for(int i=0;i<iSize;i++)
@@ -164,6 +164,9 @@ namespace MediaCloud
                 tUserJoinMsg->lstUser.push_back(pCCNUser);
                 log_info(g_pLogHelper, (char*)"recv user join session notify. username:%s identity:%d ", pCCNUser->strUserName.c_str(), pCCNUser->uiIdentity);
             }
+
+            if(NULL==tUserJoinMsg)
+                return;
 
             m_pAVMGridChannel->InsertUserJoinMsg(tUserJoinMsg);
 
@@ -184,6 +187,16 @@ namespace MediaCloud
         char* pRecvPack=NULL;       
 
         SendLogin();
+
+
+//++++++++++++++++
+/*
+T_USERJOINMSG tUserJoinMsg;
+memset(tUserJoinMsg.sessionID, 8, 16);
+m_pAVMGridChannel->InsertUserJoinMsg(&tUserJoinMsg);
+m_pAVMGridChannel->SendBeanInSession();
+*/
+//++++++++++++++++
 
         while(!m_bStopFlag)
         {

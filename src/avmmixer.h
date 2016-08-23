@@ -67,7 +67,7 @@ public:
         bool MixAudioData(void* output, int packetNum, int packetLen, double sampleTime, AudioMixer::AudioDataInfo* samples, int numStream);        
 
         bool ConvertPic(ImageConvertContext* pContext);
-        bool DecodeVideoData( unsigned char* pData, unsigned int uiSize, FrameDesc* pFrameDesc, VideoEncodedList* pVEList);        
+        bool EncodeVideoData( unsigned char* pData, unsigned int uiSize, FrameDesc* pFrameDesc, VideoEncodedList* pVEList);        
 
         void SetAudioFromat(int channels, int sample_rate, int bits_per_sample); 
         void GetAudioFromat(int& channels, int& sample_rate, int& bits_per_sample); 

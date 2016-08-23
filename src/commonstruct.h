@@ -37,10 +37,10 @@ using namespace MediaCloud;
 
 
 
-#pragma pack(4)
+#pragma pack(1)
 typedef struct _tGuid
 {
-    unsigned long  Data1;
+    unsigned int  Data1;
     unsigned short Data2;
     unsigned short Data3;
     unsigned char  Data4[8];

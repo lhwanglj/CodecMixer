@@ -29,7 +29,7 @@ namespace MediaCloud
 
 
     class CAVMBizsChannel;
-    class CAVMGridChannel: public IFrameSyncCallBack
+    class CAVMGridChannel
     {
     public:
         CAVMGridChannel();
@@ -44,13 +44,12 @@ namespace MediaCloud
         int InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg);
 
         void ProcessRecvPacket(char* pRecvPack, int uiRecvPackLen, int iType);    
-        virtual int HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo);
  
         bool Start();
         void Stop();
  
         bool SendKeepalive();
-        bool SendBeanInSession();
+        int SendBeanInSession();
         void DestoryOldSession();            
         bool SendLogin();
         
@@ -63,8 +62,8 @@ namespace MediaCloud
         bool        m_bStopFlag;
 
         CAVMBizsChannel* m_pBizsChannel;
-        StreamFrame m_streamFrame;
-                
+            
+        CriticalSection*   m_csMapSession;        
         MAP_PT_CAVMSESSION m_mapSession;
     };
 

@@ -344,11 +344,15 @@ namespace MediaCloud
         return bRtn;
     }
 
-    bool CAVMMixer::DecodeVideoData( unsigned char* pData, unsigned int uiSize, FrameDesc* pFrameDesc, VideoEncodedList* pVEList)
+    bool CAVMMixer::EncodeVideoData( unsigned char* pData, unsigned int uiSize, FrameDesc* pFrameDesc, VideoEncodedList* pVEList)
     {
+        bool bRtn=false;
         m_pVideoEncoder->Process(pData, uiSize, pFrameDesc, pVEList);
+        bRtn=true;
+        return bRtn;
     }
-    void CAVMMixer::SetAudioFromat(int channels, int sample_rate, int bits_per_sample)
+
+   void CAVMMixer::SetAudioFromat(int channels, int sample_rate, int bits_per_sample)
     {
         m_iChannels = channels;
         m_iSampleRate = sample_rate;

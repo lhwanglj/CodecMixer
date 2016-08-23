@@ -54,6 +54,7 @@ namespace MediaCloud
 
         void DestorySession();
 
+        uint8_t* GetSessionID();
         void SetSessionID(uint8_t* pSessionID);        
         void SetCodecMixer(CAVMMixer* pMixer);
         void SetConfig(string strConf);
@@ -74,15 +75,11 @@ namespace MediaCloud
         bool SetMergeFrameParam(const T_MERGEFRAMEPARAM& tMFP);
        
         void MixAudioFrameAndSend(PT_AUDIONETFRAME pADFLeading, LST_PT_AUDIONETFRAME& lstADFMinor); 
-  //      void MixAudioFrameAndSend(uint32_t usTSFound);            
         int  MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame);        
         bool MergeVideoFrame(PT_VIDEONETFRAME pVFMain, LST_PT_VIDEONETFRAME& lstVFLesser);
 
- //       void MixVideoFrameAndSend(uint32_t usTSFound);            
         void MixVideoFrameAndSend(PT_VIDEONETFRAME pVDFLeading, LST_PT_VIDEONETFRAME& lstVDFMinor);            
         void ProcessRecvPacket(GridProtoStream& gpStream);   
-        //int GetAudioTimeStamp(LST_UINT32 lstTS);
-        //int GetVideoTimeStamp(LST_UINT32 lstTS);
 
         bool SendVideo2Rtmp(VideoEncodedData * pVEData, PT_VIDEONETFRAME pVideoNetFrame); 
         void ProcessDecAudio();
@@ -123,6 +120,7 @@ namespace MediaCloud
         StmAssembler* m_pstmAssembler;
         StreamFrame  m_streamFrame;
         Tick m_tickAlive;
+
     };
 
 }

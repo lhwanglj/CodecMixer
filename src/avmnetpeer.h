@@ -296,6 +296,9 @@ namespace MediaCloud
         bool SetUserIdentity(uint32_t uiIdentity);
         uint32_t GetUserIdentity();
         cppcmn::Tick GetAliveTick();
+
+        PT_VIDEONETFRAME GetVideoNetSPSFrame();
+        PT_VIDEONETFRAME GetVideoNetPPSFrame();
  
     private:
         E_PEERROLETYPE     m_ePeerRoleType;
@@ -346,6 +349,10 @@ namespace MediaCloud
         uint32_t m_uiUserIdentity;
         
         Tick m_tickAlive; 
+        
+        PT_VIDEONETFRAME m_pVideoNetSPSFrame;
+        PT_VIDEONETFRAME m_pVideoNetPPSFrame;
+    
     };
 }
 
