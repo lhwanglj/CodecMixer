@@ -23,9 +23,10 @@ MV		= mv -rf
 RM		= rm -rf
 
 # define some parameter variable 
+#DEBUG_CFLAGS	= -g -O0 -std=c++11 -msse -msse2 -msse3 -msse4 
 DEBUG_CFLAGS	= -g -O0 -std=c++11 -msse -msse2 -msse3 -msse4  -D POSIX 
 #DEBUG_CFLAGS	= -Wall -Wno-format -g -DDEBUG -Wreorder
-RELEASE_CFLAGS	= -Wall -Wno-unknown-pragmas -Wno-format -O3
+RELEASE_CFLAGS	= -Wall -Wno-unknown-pragmas -Wno-format -O0
 
 ifeq (YES, $(DEBUG))
 	CFLAGS	= $(DEBUG_CFLAGS)
@@ -47,15 +48,16 @@ INCLUDES_FLAGS	= 	-I./ \
 
 # define LIBSPATH_FLAGS flags, LIBSPATH_FLAGS flags include library's directory. it is the path for search library file.
 # define LIBS_FLAGS flags, LIBS_FLAGS flags include all library files.
-LIBSPATH_FLAGS	= -L /home/wlj1/codec/MediaCodec/build/linux/lib  
+LIBSPATH_FLAGS	= -L ./lib 
+#LIBSPATH_FLAGS	= -L /home/wlj1/codec/MediaCodec/build/linux/lib ./lib 
 
-LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
+LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lx264 -lfdkAAC -lavcodec -lavutil -lprotobuf -ldl
+#LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
 
 # define source file variable
  SRCFILES        =  ./AVSDK/avutil/src/avcommon.cpp \
 					./AVSDK/avutil/src/BaseSocket.cpp \
 					./AVSDK/avutil/src/buffer.cpp \
-					./AVSDK/avutil/src/clock.cpp \
 					./AVSDK/avutil/src/common.cpp \
 					./AVSDK/avutil/src/datetime.cpp \
 					./AVSDK/avutil/src/file.cpp \
@@ -65,6 +67,7 @@ LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
 					./AVSDK/avutil/src/i420writer.cpp \
 					./AVSDK/avutil/src/LogFile.cpp \
 					./AVSDK/avutil/src/logging.cpp \
+					./AVSDK/avutil/src/clock.cpp \
 					./AVSDK/avutil/src/mqthread_posix.cpp \
 					./AVSDK/avutil/src/mqthread_win32.cpp \
 					./AVSDK/avutil/src/msgqueue.cpp \
@@ -109,7 +112,7 @@ LIBS_FLAGS		= -lpthread -lrt -lmediacommon -lprotobuf -ldl
                     ./src/BufSerialize.cpp\
                     ./src/avmBizsChannel.cpp\
                     ./src/avmGridChannel.cpp\
-                    ./src/clock.cpp\
+                    ./src/clockex.cpp\
                     ./src/AVMixer2BizsMessage.cpp\
                     ./src/rgridproto.cpp\
                     ./src/stmassembler.cpp\

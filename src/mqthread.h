@@ -4,7 +4,7 @@
 #include <string>
 #include <pthread.h>
 #include "socket.h"
-#include "clock.h"
+#include "clockex.h"
 
 namespace cppcmn {
 

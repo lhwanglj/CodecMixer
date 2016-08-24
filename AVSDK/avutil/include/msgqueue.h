@@ -7,7 +7,7 @@
 #include <map>
 #include <string>
 #include "sync.h"
-#include "clock.h"
+#include <clock.h>
 #include "thread.h"
 
 namespace MediaCloud { namespace Common {

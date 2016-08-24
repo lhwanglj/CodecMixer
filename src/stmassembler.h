@@ -2,7 +2,7 @@
 #define _HPSP_STMASSEMBLER_H
 
 #include <stdint.h>
-#include "clock.h"
+#include "clockex.h"
 
 namespace hpsp {
     

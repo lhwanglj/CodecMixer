@@ -9,7 +9,7 @@ namespace cppcmn {
 	// it is always > 0; < 0 - means invalid tick
     typedef int64_t Tick;
 
-	Tick Now();
+	Tick NowEx();
     
 	inline Tick InfiniteTick() {
 		return -1LL;
@@ -36,7 +36,7 @@ namespace cppcmn {
 	}
 
 	inline Tick TickAfterMilliseconds(int64_t ms) {
-		return Now() + TickFromMilliseconds(ms);
+		return NowEx() + TickFromMilliseconds(ms);
 	}
 
 	inline Tick TickMultiply(Tick tick, double factor) {

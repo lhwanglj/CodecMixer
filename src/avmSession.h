@@ -55,6 +55,7 @@ namespace MediaCloud
         void DestorySession();
 
         uint8_t* GetSessionID();
+        string GetSessionIDStr();
         void SetSessionID(uint8_t* pSessionID);        
         void SetCodecMixer(CAVMMixer* pMixer);
         void SetConfig(string strConf);

@@ -1,4 +1,4 @@
-#include "clock.h"
+#include "clockex.h"
 #include <time.h>
 #include <sys/time.h>
 
@@ -12,7 +12,7 @@ namespace cppcmn {
     static double orwl_timebase = 0.0;
     static uint64_t orwl_timestart = 0;
     
-    Tick Now() {
+    Tick NowEx() {
         // be more careful in a multithreaded environement
         if (!orwl_timestart) {
             mach_timebase_info_data_t tb = { 0 };
@@ -25,7 +25,7 @@ namespace cppcmn {
         return Tick(diff / 1000);
     }
 #else
-    Tick Now() {
+    Tick NowEx() {
         struct timespec ts;
         if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts) != 0) {
             return 0;

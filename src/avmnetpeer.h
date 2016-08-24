@@ -13,7 +13,7 @@
 #include "../AVSDK/src/Adapter/audiopacketbuffer.h"
 #include "avmmixercomm.h"
 #include "frmqueue.h"
-#include "clock.h"
+#include "clockex.h"
 
 #define AVM_MAX_AUDIO_FRAMEQUEUE_SIZE     50
 #define AVM_MAX_VIDEO_FRAMEQUEUE_SIZE     50

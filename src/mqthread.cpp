@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include "mqthread.h"
 #include "logging.h"
-#include "clock.h"
 
 using namespace cppcmn;
 using namespace MediaCloud::Common;
@@ -153,7 +152,7 @@ void MQThread::Loop()
         int pret = _socketPoll->PollReady(_readyItems, _readyItemNum, timeout);
         Assert(pret >= 0);
         
-        _tick = Now();
+        _tick = NowEx();
         
         if (pret > 0) {
             bool quiting = false;

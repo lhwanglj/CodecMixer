@@ -199,5 +199,5 @@ void MediaCloud::Common::AssertHelper(bool condition, const char *file, const ch
 #endif
     }
     
-//    assert(false);
+    assert(false);
 }

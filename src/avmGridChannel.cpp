@@ -83,29 +83,31 @@ namespace MediaCloud
       //  log_info(g_pLogHelper, "recv media packet. session:%s datalen:%d ", GUIDToString(*((T_GUID*)gpStream.sessionId.ptr)).c_str(), gpStream.data.length); 
       
         //find the session
-        m_csMapSession->Enter();
+        ScopedCriticalSection cs(m_csMapSession);
+//        m_csMapSession->Enter();
         PT_CAVMSESSION pSession=m_mapSession[(uint8_t*)gpStream.sessionId.ptr];
-        m_csMapSession->Leave();
+//        m_csMapSession->Leave();
 
         if(NULL==pSession)
         {
             log_err(g_pLogHelper, "not find session. session:%s datalen:%d ", GUIDToString(*((T_GUID*)gpStream.sessionId.ptr)).c_str()); 
             return;
         }
-
+        
         pSession->ProcessRecvPacket(gpStream);
     }
 
     int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
     {
-        m_csMapSession->Enter();
+        ScopedCriticalSection cs(m_csMapSession);
+       // m_csMapSession->Enter();
         CAVMSession* pExist=NULL;
         ITR_MAP_PT_CAVMSESSION itrS=m_mapSession.find(pUserJoinMsg->sessionID);
         if(itrS!=m_mapSession.end())
             pExist = itrS->second;
-   
+       // m_csMapSession->Leave();
+        
         log_info(g_pLogHelper, "insert user join message %x sessionid:%s", pUserJoinMsg->sessionID, GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
-        m_csMapSession->Leave();
         
         char szIdentity[16];
         if(NULL==pExist)
@@ -173,9 +175,9 @@ namespace MediaCloud
             pExist->StartProcessAudioThread();
             pExist->StartProcessVideoThread();
             
-            m_csMapSession->Enter();
+        //    m_csMapSession->Enter();
             m_mapSession[pExist->GetSessionID()]=pExist;
-            m_csMapSession->Leave();
+        //    m_csMapSession->Leave();
             
             log_info(g_pLogHelper, (char*)"insert a session join msg sessid:%s firstptr:%x", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pExist->GetSessionID());
         }
@@ -228,6 +230,8 @@ namespace MediaCloud
             {
                 if(pSession->IsTimeout())
                 {
+                    log_info(g_pLogHelper, "session timeout. be destoried sid:%x ", pSession->GetSessionIDStr().c_str());
+                    
                     m_mapSession.erase(itr);
                     pSession->DestorySession();
                     delete pSession;

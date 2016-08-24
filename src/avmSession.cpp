@@ -3,7 +3,7 @@
 #include "avmSession.h"
 #include <picturemixer.hpp>
 #include <unistd.h>
-#include "clock.h"
+#include "clockex.h"
 #include "Log.h"
 
 #define AVM_LESS_AUDIO_DURATION_LEN      100
@@ -67,6 +67,10 @@ namespace MediaCloud
     uint8_t* CAVMSession::GetSessionID()
     {
         return m_pSessionID;
+    }
+    string CAVMSession::GetSessionIDStr()
+    {
+        return m_strSessionID;
     }
     void CAVMSession::SetSessionID(uint8_t* pSessionID)
     {
@@ -189,9 +193,10 @@ namespace MediaCloud
         frameDesc.iPts           = pVideoNetFrameMain->uiTimeStamp;
         memset(&velist, 0, sizeof(VideoEncodedList));
         
-        log_info(g_pLogHelper, "encode video data dataptr:%x  len:%d ts:%d", pVideoNetFrameMain->tPicDecInfo.pPlaneData , pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, frameDesc.iPts  );
+        log_info(g_pLogHelper, "encode video data and send to rtmp dataptr:%x len:%d fid:%d  ts:%d", pVideoNetFrameMain->tPicDecInfo.pPlaneData , 
+                    pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, pVideoNetFrameMain->pMediaInfo->frameId,  frameDesc.iPts );
+        
         m_pAVMMixer->EncodeVideoData((unsigned char*)pVideoNetFrameMain->tPicDecInfo.pPlaneData, pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, &frameDesc,&velist);
-        //m_pAVMMixer->DecodeVideoData((unsigned char*)pVideoNetFrameMain->pData, pVideoNetFrameMain->uiDataLen, &frameDesc,&velist);
         
         //send the encoded and mixed video to rtmpserver
         for(int ii=0;ii<velist.iSize;ii++)
@@ -816,7 +821,7 @@ namespace MediaCloud
             lstAudioDecFrame.push_back(pAudioNetFrameTmp);
         }
         
-        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s leading_ts:%d", m_strSessionID.c_str(), pAudioNetFrameLeading->uiTimeStamp);
+        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s fid:%d leading_ts:%d", m_strSessionID.c_str(), pAudioNetFrameLeading->pMediaInfo->frameId, pAudioNetFrameLeading->uiTimeStamp);
         MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
 
         //release audio net frame leading, and other minor's net frame release is in SetCurAudioDecFrame
@@ -856,9 +861,6 @@ namespace MediaCloud
             usleep(10*1000); 
         }
         
-//        if(!bFoundAll)       
-//            return;
-
         LST_PT_VIDEONETFRAME lstVideoDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
         {
@@ -875,8 +877,9 @@ namespace MediaCloud
             lstVideoDecFrame.push_back(pVideoNetFrameTmp);
         }
         
-        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%d", m_strSessionID.c_str(), pVideoNetFrameLeading->uiTimeStamp);
+        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%d fid:%d", m_strSessionID.c_str(), pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->pMediaInfo->frameId);
         MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);
+
         ReleaseVideoNetFrame(pVideoNetFrameLeading);
     }
 
@@ -931,7 +934,7 @@ namespace MediaCloud
     {
         bool bRtn=false;
         Tick now;
-        now=cppcmn::TickToSeconds(cppcmn::Now());
+        now=cppcmn::TickToSeconds(cppcmn::NowEx());
         uint32_t uiSpace = now-m_tickAlive;
         if(uiSpace>m_uiTimeout)
             bRtn=true;
@@ -941,7 +944,7 @@ namespace MediaCloud
     void CAVMSession::SetTimeout(uint32_t uiTimeout)
     {
         m_uiTimeout=uiTimeout;
-        m_tickAlive = cppcmn::TickToSeconds(cppcmn::Now());
+        m_tickAlive = cppcmn::TickToSeconds(cppcmn::NowEx());
     }
     void CAVMSession::SetCodecMixer(CAVMMixer* pMixer)
     {
@@ -973,6 +976,8 @@ namespace MediaCloud
         pPeer->SetUserName(pUser->strUserName);
         pPeer->SetUserIdentity(pUser->uiIdentity);
         pPeer->InitNP();
+        pPeer->StartAudioDecThread();
+        pPeer->StartVideoDecThread();
         m_pPeers[m_usPeerCount++]=pPeer;
         
         bRtn=true;
@@ -1037,6 +1042,7 @@ namespace MediaCloud
         return bRtn;
     }
 
+    //hpsp's callback we will get identity fid stmtype frmtype and data 
     void CAVMSession::HandleRGridFrameRecved(const StmAssembler::Frame &frame)
     {
         MediaInfo* pmInfo = new MediaInfo;
@@ -1051,9 +1057,11 @@ namespace MediaCloud
 //                            pmInfo->identity, pmInfo->frameId, pmInfo->nStreamType, frame.length); 
         m_streamFrame.ParseDownloadFrame((uint8_t*)frame.payload, frame.length, pmInfo, this);
 
+        //use this api to release buf from hpsp
         hpsp::StmAssembler::ReleaseFramePayload(frame.payload);
     }
 
+    //we will get video frame or audio frame in this api
     int CAVMSession::HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo)
     {
         CAVMNetPeer* pPeer=NULL;
@@ -1081,8 +1089,8 @@ namespace MediaCloud
             pAudioNetFrame->uiTimeStamp=mInfo->audio.nTimeStamp;
             pAudioNetFrame->pMediaInfo=mInfo;
                         
- //           log_info(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d duration:%d ts:%d len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
- //                                                 mInfo->nStreamType, pAudioNetFrame->uiDuration,  pAudioNetFrame->uiTimeStamp,  nSize); 
+            log_info(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d duration:%d ts:%d len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
+                                                  mInfo->nStreamType, pAudioNetFrame->uiDuration,  pAudioNetFrame->uiTimeStamp,  nSize); 
             pPeer->AddAudioData(pAudioNetFrame); 
         }
         else if(eVideo==mInfo->nStreamType)
@@ -1132,9 +1140,10 @@ namespace MediaCloud
        }
     }
 
+    //recv a packet from net, call hpsp api to get data
     void CAVMSession::ProcessRecvPacket(GridProtoStream& gpStream)
     {
-        m_pstmAssembler->HandleRGridStream(gpStream.data.ptr, gpStream.data.length, cppcmn::Now()); 
+        m_pstmAssembler->HandleRGridStream(gpStream.data.ptr, gpStream.data.length, cppcmn::NowEx()); 
     }
 
 }
