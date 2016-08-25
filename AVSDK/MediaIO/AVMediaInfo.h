@@ -204,7 +204,7 @@ extern "C"
             FileMediaInfo file;
       //      AudioFilterEffectInfo audioEffect;
             bool   bFirstFrame;
-            _MediaInfo& operator=(const _MediaInfo& rhs)
+     /*       _MediaInfo& operator=(const _MediaInfo& rhs)
             {
                 if(this==&rhs)
                     return *this;
@@ -219,6 +219,7 @@ extern "C"
 
                 return *this;
             }
+*/
         }MediaInfo;
 
         typedef struct _MediaPacket{

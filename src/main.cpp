@@ -137,6 +137,8 @@ int main(int argc, char** argv)
     string strLogFile = g_confFile.strLogDir;
     strLogFile += "codecmix.log";
     g_pLogHelper = open_logfile(strLogFile.c_str());
+    set_log_level(g_pLogHelper, g_confFile.iLogLevel);
+
     log_info(g_pLogHelper, (char*)"main: codecmix start.........................");
 
     signal(SIGPIPE,SIG_IGN);

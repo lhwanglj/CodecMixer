@@ -76,6 +76,12 @@ bool CCommonStruct::ReadConfig(const char* acpszConfigFilePath)
         g_confFile.strLogDir = "/var/log";
 	else
         g_confFile.strLogDir=strTemp;
+
+	strTemp = iniFile.read("local", "loglevel");
+	if(strTemp.empty())	
+        g_confFile.iLogLevel = 15;
+	else
+        g_confFile.strLogDir=atoi(strTemp.c_str());
 	
 	strTemp = iniFile.read("local", "name");
 	if(strTemp.empty())	

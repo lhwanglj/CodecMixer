@@ -194,7 +194,7 @@ namespace MediaCloud
         memset(&velist, 0, sizeof(VideoEncodedList));
         
         log_info(g_pLogHelper, "encode video data and send to rtmp dataptr:%x len:%d fid:%d  ts:%d", pVideoNetFrameMain->tPicDecInfo.pPlaneData , 
-                    pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, pVideoNetFrameMain->pMediaInfo->frameId,  frameDesc.iPts );
+                    pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, pVideoNetFrameMain->tMediaInfo.frameId,  frameDesc.iPts );
         
         m_pAVMMixer->EncodeVideoData((unsigned char*)pVideoNetFrameMain->tPicDecInfo.pPlaneData, pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, &frameDesc,&velist);
         
@@ -427,9 +427,9 @@ namespace MediaCloud
         {
             AudioStreamFormat asf;
             asf.flag = 0;
-            asf.sampleRate = pAudioNetFrame->pMediaInfo->audio.nSampleRate;
-            asf.sampleBits= pAudioNetFrame->pMediaInfo->audio.nBitPerSample;
-            asf.channelNum = pAudioNetFrame->pMediaInfo->audio.nChannel;
+            asf.sampleRate = pAudioNetFrame->tMediaInfo.audio.nSampleRate;
+            asf.sampleBits= pAudioNetFrame->tMediaInfo.audio.nBitPerSample;
+            asf.channelNum = pAudioNetFrame->tMediaInfo.audio.nChannel;
             if(!m_pAVMMixer->CreateAudioMixer(asf, iFrameCount))
             {
                 log_info(g_pLogHelper, "create audio mixer object failed. sessionid:%s samplerate:%d samplebit:%d channelnum:%d framecount:%d",
@@ -821,7 +821,7 @@ namespace MediaCloud
             lstAudioDecFrame.push_back(pAudioNetFrameTmp);
         }
         
-        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s fid:%d leading_ts:%d", m_strSessionID.c_str(), pAudioNetFrameLeading->pMediaInfo->frameId, pAudioNetFrameLeading->uiTimeStamp);
+        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s fid:%d leading_ts:%d", m_strSessionID.c_str(), pAudioNetFrameLeading->tMediaInfo.frameId, pAudioNetFrameLeading->uiTimeStamp);
         MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
 
         //release audio net frame leading, and other minor's net frame release is in SetCurAudioDecFrame
@@ -877,7 +877,7 @@ namespace MediaCloud
             lstVideoDecFrame.push_back(pVideoNetFrameTmp);
         }
         
-        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%d fid:%d", m_strSessionID.c_str(), pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->pMediaInfo->frameId);
+        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%d fid:%d", m_strSessionID.c_str(), pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->tMediaInfo.frameId);
         MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);
 
         ReleaseVideoNetFrame(pVideoNetFrameLeading);
@@ -1045,17 +1045,17 @@ namespace MediaCloud
     //hpsp's callback we will get identity fid stmtype frmtype and data 
     void CAVMSession::HandleRGridFrameRecved(const StmAssembler::Frame &frame)
     {
-        MediaInfo* pmInfo = new MediaInfo;
-        pmInfo->identity = frame.identity;
+        MediaInfo mInfo;
+        mInfo.identity = frame.identity;
         if(0==frame.stmtype)
-            pmInfo->nStreamType=eAudio;
+            mInfo.nStreamType=eAudio;
         else
-            pmInfo->nStreamType=eVideo;
-        pmInfo->frameId=frame.fid;
+            mInfo.nStreamType=eVideo;
+        mInfo.frameId=frame.fid;
         
 //        log_info(g_pLogHelper, "RGrid construct a frame. sessionid%s: identity:%d fid:%d stmtype:%d datalen:%d", m_strSessionID.c_str(), 
-//                            pmInfo->identity, pmInfo->frameId, pmInfo->nStreamType, frame.length); 
-        m_streamFrame.ParseDownloadFrame((uint8_t*)frame.payload, frame.length, pmInfo, this);
+//                            mInfo.identity, mInfo.frameId, mInfo.nStreamType, frame.length); 
+        m_streamFrame.ParseDownloadFrame((uint8_t*)frame.payload, frame.length, &mInfo, this);
 
         //use this api to release buf from hpsp
         hpsp::StmAssembler::ReleaseFramePayload(frame.payload);
@@ -1087,7 +1087,7 @@ namespace MediaCloud
             pAudioNetFrame->uiIdentity = mInfo->identity;
             pAudioNetFrame->uiPayloadType=0;
             pAudioNetFrame->uiTimeStamp=mInfo->audio.nTimeStamp;
-            pAudioNetFrame->pMediaInfo=mInfo;
+            pAudioNetFrame->tMediaInfo=*mInfo;
                         
             log_info(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d duration:%d ts:%d len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
                                                   mInfo->nStreamType, pAudioNetFrame->uiDuration,  pAudioNetFrame->uiTimeStamp,  nSize); 
@@ -1132,7 +1132,7 @@ namespace MediaCloud
            pVideoNetFrame->uiPayloadType=0;
            pVideoNetFrame->uiTimeStamp=mInfo->video.nDtsTimeStamp;
            pVideoNetFrame->usFrameIndex=mInfo->frameId;
-           pVideoNetFrame->pMediaInfo=mInfo;
+           pVideoNetFrame->tMediaInfo=*mInfo;
             
            log_info(g_pLogHelper, "recv a video frame identity:%d fid:%d frmtype:%d stmtype:%d duration:%d ts:%d len:%d DataPtr:%x", pVideoNetFrame->uiIdentity, mInfo->frameId,mInfo->video.nType,
                                                   mInfo->nStreamType, pVideoNetFrame->uiDuration,  pVideoNetFrame->uiTimeStamp,  nSize, pVideoNetFrame->pData); 

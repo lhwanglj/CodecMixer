@@ -152,7 +152,7 @@ namespace MediaCloud
             memset(&encParam, 0, sizeof(VideoCodecParam));
             encParam.encoder.iPicFormat  = kCodecPictureFmtI420;
             encParam.encoder.iFrameRate  = 25;   //get the value from beaninsession's conf
-            encParam.encoder.iWidth      = 640;  //get the value from beaninsession's conf
+            encParam.encoder.iWidth      = 360;  //get the value from beaninsession's conf
             encParam.encoder.iHeight     = 480;  //get the value from beaninsession's conf
             encParam.encoder.iMaxBitrate = 150;  //get the value from beaninsession's conf
             encParam.encoder.iStartBitrate = 150;//get the value from beaninsession's conf

@@ -85,6 +85,7 @@ typedef struct _tconffile
 	char			pszConfSvrIP[AVM_MAX_IP_LEN];
 	unsigned short	usConfSvrPort;
 	string			strLogDir;
+    int             iLogLevel;
 	string			strName;
 	string			strType;
     T_CONFSVR       tConfSvr;

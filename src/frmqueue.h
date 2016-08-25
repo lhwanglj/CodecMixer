@@ -90,9 +90,11 @@ namespace cppcmn {
 			}
 
 			if (FrameIdComparer::IsNotLater(fid, _fidEnd)) {
-				int idx = fid - _fidBegin;
-				Assert(idx < _queue.Count());
-				Slot *slot = reinterpret_cast<Slot*>(_queue.At(idx));
+                int idx = FrameIdComparer::Distance(fid, _fidBegin);
+				Assert(idx >= 0 && idx < _queue.Count());
+
+                Slot *slot = reinterpret_cast<Slot*>(_queue.At(idx));
+                Assert(slot->fid == fid);
 				if (slot->empty) {
 					slot->empty = false;
 					++_frmCnt;
@@ -138,9 +140,11 @@ namespace cppcmn {
 				FrameIdComparer::IsNotEarlier(fid, _fidBegin) &&
 				FrameIdComparer::IsNotLater(fid, _fidEnd)) 
             {
-				int idx = fid - _fidBegin;
-				Assert(idx < _queue.Count());
+                int idx = FrameIdComparer::Distance(fid, _fidBegin);
+				Assert(idx >= 0 && idx < _queue.Count());
+
 				Slot *pslot = reinterpret_cast<Slot*>(_queue.At(idx));
+                Assert(pslot->fid == fid);
 				if (!pslot->empty) {
 					return pslot;
 				}
@@ -160,8 +164,11 @@ namespace cppcmn {
                 return false;
             }
             
-            if(nullptr!=efunc) 
+            if (efunc != nullptr) {
                 efunc(slot, slot->fid, tag);
+            }
+
+            Assert(_frmCnt > 0);
             slot->empty = true;
             
             if (_frmCnt == 1) {
@@ -170,12 +177,15 @@ namespace cppcmn {
                 return true;
             }
             
+            _frmCnt--;
+            
             if (fid == _fidBegin || fid == _fidEnd) {
                 // remove the all empty frames from the beginning
                 int queueCnt = _queue.Count();
                 bool fromBegin = fid == _fidBegin;
                 void *qslot = fromBegin ? _queue.FirstSlot() : _queue.LastSlot();
                 Assert(reinterpret_cast<Slot*>(qslot) == slot);
+                Assert(reinterpret_cast<Slot*>(qslot)->fid == fid);
                 
                 for (int i = 0; i < queueCnt; i++) {
                     Slot *s = reinterpret_cast<Slot*>(qslot);
@@ -192,15 +202,11 @@ namespace cppcmn {
                         _queue.EraseLastNSlot(i);
                         _fidEnd = s->fid;
                     }
-                    _frmCnt -= i;
                     break;
                 }
             }
-            else {
-                _frmCnt--;
-            }
             
-            Assert(_frmCnt > 0);
+            Assert(_frmCnt <= _queue.Count());
             return true;
         }
 
@@ -347,6 +353,7 @@ namespace cppcmn {
 				Slot *slot = reinterpret_cast<Slot*>(_queue.FirstSlot());
 				if (slot == nullptr) {
 					Assert(_frmCnt == 0);
+                    _fidBegin = _fidEnd = 0;
 					break;
 				}
 
@@ -355,13 +362,15 @@ namespace cppcmn {
 					continue;
 				}
 
-				if (fid - slot->fid >= N) {
+                if (FrameIdComparer::Distance(fid, slot->fid) >= N) {
 					if (efunc != nullptr) {
 						efunc(slot, slot->fid, tag);
 					}
 
-					--_frmCnt;
 					_queue.EraseFirstNSlot(1);
+                    if (--_frmCnt == 0) {
+                        Assert(_queue.FirstSlot() == nullptr);
+                    }
 					continue;
 				}
 

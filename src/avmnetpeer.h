@@ -107,13 +107,12 @@ namespace MediaCloud
         uint32_t uiTimeStampAdjust; 
         uint32_t uiPayloadType;
         uint32_t uiDuration;
-        MediaInfo* pMediaInfo;
+        MediaInfo tMediaInfo;
         t_AudioNetFrame()
         {
             pData=NULL;
             uiDataLen=0;
             pDecData=NULL;
-            pMediaInfo=NULL; 
         }
     }T_AUDIONETFRAME, *PT_AUDIONETFRAME;
     void ReleaseAudioNetFrame(PT_AUDIONETFRAME pAudioNF);
@@ -160,14 +159,13 @@ namespace MediaCloud
         uint16_t usFrameIndex;
         uint32_t uiPayloadType;
         uint32_t uiDuration;
-        MediaInfo* pMediaInfo;
+        MediaInfo tMediaInfo;
         t_VideoNetFrame():tPicDecInfo()
         {
             pData=NULL;
             uiDataLen=0;
             pConvData=NULL;
             uiConvDataSize=0;
-            pMediaInfo=NULL;
         }
     }T_VIDEONETFRAME, *PT_VIDEONETFRAME;
     void ReleaseVideoNetFrame(PT_VIDEONETFRAME pAudioNF);
