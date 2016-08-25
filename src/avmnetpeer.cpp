@@ -342,24 +342,26 @@ namespace MediaCloud
                 {
                     if(eIDRFrame==pVideoNetFrame->tMediaInfo.video.nType || eIFrame==pVideoNetFrame->tMediaInfo.video.nType)
                     {
-                        if( DecVideoNetFrame(m_pVideoNetSPSFrame) && DecVideoNetFrame(m_pVideoNetPPSFrame) ) 
-                        {
-                            if(DecVideoNetFrame(pVideoNetFrame))
-                            {
-                                InsertVideoDecFrame(pVideoNetFrame);
-                                m_usCurVideoNetFrameID=pVideoNetFrame->tMediaInfo.frameId;
-                                log_info(g_pLogHelper, "decode next video frame successed, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
-                                     pVideoNetFrame->tMediaInfo.frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
-                            }
-                            else
-                            {
-                                m_usCurVideoNetFrameID=pVideoNetFrame->tMediaInfo.frameId;
-                                log_info(g_pLogHelper, "decode next video frame failed, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
-                                     pVideoNetFrame->tMediaInfo.frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
-                                ReleaseVideoNetFrame(pVideoNetFrame);
-                            }
-                        }
+                        DecVideoNetFrame(m_pVideoNetSPSFrame);
+                        DecVideoNetFrame(m_pVideoNetPPSFrame);
                     }
+                    
+                    if(DecVideoNetFrame(pVideoNetFrame))
+                    {
+                        InsertVideoDecFrame(pVideoNetFrame);
+                        m_usCurVideoNetFrameID=pVideoNetFrame->tMediaInfo.frameId;
+                        log_info(g_pLogHelper, "decode next video frame successed, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                                   pVideoNetFrame->tMediaInfo.frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
+                    }
+                    else
+                    {
+                        m_usCurVideoNetFrameID=pVideoNetFrame->tMediaInfo.frameId;
+                        log_info(g_pLogHelper, "decode next video frame failed, identity:%d fid:%d ts:%d len:%d", m_uiUserIdentity, 
+                                    pVideoNetFrame->tMediaInfo.frameId, pVideoNetFrame->uiTimeStamp, pVideoNetFrame->uiDataLen );
+                         ReleaseVideoNetFrame(pVideoNetFrame);
+                    }
+
+
                     return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
                 }
                 else
@@ -538,9 +540,20 @@ namespace MediaCloud
         
         return NULL;
     }   
-        
+       
+//FILE *g_pfOutAAC = NULL;
+//FILE *g_pfOutWav = NULL;
+ 
     bool CAVMNetPeer::DecAudioNetFrame(PT_AUDIONETFRAME pAudioNF)
     {
+//wljtest++++++++
+//if(NULL==g_pfOutAAC)
+//{
+//    g_pfOutAAC = fopen("audio.aac", "wb");
+//    g_pfOutWav = fopen("audio.wav", "wb");
+//}
+//+++++++++++++++
+
         bool bRtn=false;
         if(NULL==pAudioNF)
             return bRtn;
@@ -562,9 +575,10 @@ namespace MediaCloud
             audioFormat.ExtParam.iPacketlossperc = 25;
             audioFormat.ExtParam.iComplexity = 8;
             audioFormat.ExtParam.iFrameDuration = pAudioNF->uiDuration;
+            //if(!CreateAudioDecoder(kAudioCodecIOSAAC, audioFormat))
             if(!CreateAudioDecoder(kAudioCodecFDKAAC, audioFormat))
             {
-                log_err(g_pLogHelper, "create audio decoder failed. identity:%s ramplerate:%d bitsofsameple:%d channelnum:%d duration:%d", m_uiUserIdentity,
+                log_err(g_pLogHelper, "create audio decoder failed. identity:%d ramplerate:%d bitsofsameple:%d channelnum:%d duration:%d", m_uiUserIdentity,
                              audioFormat.iSampleRate, audioFormat.iBitsOfSample, audioFormat.iNumOfChannels, audioFormat.ExtParam.iFrameDuration );
                 return false;
             }
@@ -577,6 +591,14 @@ namespace MediaCloud
            m_pAudioDecoder->Process((unsigned char*)pAudioNF->pData, pAudioNF->uiDataLen, (unsigned char*)pAudioNF->pDecData, (int*)&pAudioNF->uiDecDataPos);
            if(0<pAudioNF->uiDecDataPos)
               bRtn=true;
+           
+//wljtest+++++++++++++ 
+//            fwrite(pAudioNF->pData, 1, pAudioNF->uiDataLen, g_pfOutAAC);
+//            fwrite(pAudioNF->pDecData, 1, pAudioNF->uiDecDataPos, g_pfOutWav); 
+//wljtest+++++++++++++
+            log_info(g_pLogHelper, "decode audio datalen:%d->%d identity:%d fid:%d ts:%d", pAudioNF->uiDataLen, pAudioNF->uiDecDataPos,
+                         pAudioNF->uiIdentity, pAudioNF->tMediaInfo.frameId, pAudioNF->uiTimeStamp );
+
        }
      //      if(0<m_pAudioDecoder->Process((unsigned char*)pAudioNF->pData, pAudioNF->uiDataLen, (unsigned char*)pAudioNF->pDecData, (int*)&pAudioNF->uiDecDataPos))
      //           bRtn=true;
@@ -633,7 +655,7 @@ namespace MediaCloud
             pVideoNetFrame->tPicDecInfo.uiWidth=pic.iWidth;
             pVideoNetFrame->tPicDecInfo.uiHeight=pic.iHeight;
             bRtn=true;
-            log_info(g_pLogHelper, "decode video succesed. fid:%d frmtype:%d datalen:%d processrtn:%d", pVideoNetFrame->tMediaInfo.frameId, 
+            log_notice(g_pLogHelper, "decode video succesed. fid:%d frmtype:%d datalen:%d processrtn:%d", pVideoNetFrame->tMediaInfo.frameId, 
                             pVideoNetFrame->tMediaInfo.video.nType, pVideoNetFrame->uiDataLen, iDecRtn );
         }
         else
@@ -883,7 +905,7 @@ namespace MediaCloud
             if(NULL!=m_pVideoNetSPSFrame)
                 ReleaseVideoNetFrame(m_pVideoNetSPSFrame);
             m_pVideoNetSPSFrame=ptVideoNetFrame;
-            log_info(g_pLogHelper, "video add sps frame. fid:%d frmtype:%d ", m_pVideoNetSPSFrame->tMediaInfo.frameId, 
+            log_info(g_pLogHelper, "video add sps frame. identity:%d fid:%d frmtype:%d ", m_pVideoNetSPSFrame->uiIdentity,   m_pVideoNetSPSFrame->tMediaInfo.frameId, 
                                 m_pVideoNetSPSFrame->tMediaInfo.video.nType);
             bRtn=true;
             return bRtn;
@@ -893,14 +915,12 @@ namespace MediaCloud
             if(NULL!=m_pVideoNetPPSFrame)
                 ReleaseVideoNetFrame(m_pVideoNetPPSFrame);
             m_pVideoNetPPSFrame=ptVideoNetFrame;
-            log_info(g_pLogHelper, "video add pps frame. fid:%d frmtype:%d", m_pVideoNetPPSFrame->tMediaInfo.frameId, 
+            log_info(g_pLogHelper, "video add pps frame. identity:%d  fid:%d frmtype:%d", m_pVideoNetPPSFrame->uiIdentity,  m_pVideoNetPPSFrame->tMediaInfo.frameId, 
                                     m_pVideoNetPPSFrame->tMediaInfo.video.nType);
             bRtn=true;
             return bRtn;
         }
       
-        log_info(g_pLogHelper, "video add data frame. fid:%d frmtype:%d ", m_pVideoNetPPSFrame->tMediaInfo.frameId, 
-                                    m_pVideoNetPPSFrame->tMediaInfo.video.nType );
         bool bIsNew=false;
         auto* slot=m_fqVideoNetFrame.Insert(ptVideoNetFrame->tMediaInfo.frameId, bIsNew, ReleaseVideoNetFrameCB, this);
         if(nullptr!=slot)

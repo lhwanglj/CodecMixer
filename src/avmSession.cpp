@@ -83,6 +83,12 @@ namespace MediaCloud
        m_tAudioDecParam=tAudioParam; 
     }
 
+    void CAVMSession::SetAudioParamType(uint32_t iSampleRate, uint16_t iChannels, uint16_t iBitsPerSample)
+    {
+        m_tAudioDecParam.uiSampleRate =iSampleRate;
+        m_tAudioDecParam.usChannel = iChannels;
+        m_tAudioDecParam.usBitPerSample = iBitsPerSample; 
+    }
     bool CAVMSession::SetMergeFrameParam(const T_MERGEFRAMEPARAM& tMFP)
     {
         bool bRtn=false;
@@ -193,14 +199,13 @@ namespace MediaCloud
         frameDesc.iPts           = pVideoNetFrameMain->uiTimeStamp;
         memset(&velist, 0, sizeof(VideoEncodedList));
         
-        log_info(g_pLogHelper, "encode video data and send to rtmp dataptr:%x len:%d fid:%d  ts:%d", pVideoNetFrameMain->tPicDecInfo.pPlaneData , 
-                    pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, pVideoNetFrameMain->tMediaInfo.frameId,  frameDesc.iPts );
-        
         m_pAVMMixer->EncodeVideoData((unsigned char*)pVideoNetFrameMain->tPicDecInfo.pPlaneData, pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, &frameDesc,&velist);
         
         //send the encoded and mixed video to rtmpserver
         for(int ii=0;ii<velist.iSize;ii++)
         {
+            log_info(g_pLogHelper, "send video to rtmp index:%d sessionid:%s dataLen:%d->%d->%d fid:%d  ts:%d", ii, GetSessionIDStr().c_str(), pVideoNetFrameMain->uiDataLen,
+                     pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, velist.iPicData[ii].iDataLen , pVideoNetFrameMain->tMediaInfo.frameId,  frameDesc.iPts );
             SendVideo2Rtmp(velist.iPicData+ii, pVideoNetFrameMain);
             free(velist.iPicData[ii].iData);
         }
@@ -401,13 +406,14 @@ namespace MediaCloud
     }
 */
 
-    int  CAVMSession::MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame)
+    int  CAVMSession::MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame, int iPerPackLen)
     {
         int iRtn=0;
         int iFrameCount=lstAudioNetFrame.size();
         int iIndex=0;
-        int iPacketLen=m_tAudioDecParam.usChannel*m_tAudioDecParam.usBitPerSample/8;
-        int iPackNums=*piMixDataSize/iPacketLen;
+        int iPacketLen=iPerPackLen;
+        //int iPacketLen=m_tAudioDecParam.usChannel*m_tAudioDecParam.usBitPerSample/8;
+        int iPackNums= *piMixDataSize/iPacketLen;
 
         AudioMixer::AudioDataInfo pAudioDataInfo[iFrameCount];
         ITR_LST_PT_AUDIONETFRAME itrAudioFrame=lstAudioNetFrame.begin();
@@ -417,9 +423,11 @@ namespace MediaCloud
             pAudioNetFrame=*itrAudioFrame;
             pAudioDataInfo[iIndex]._bufferSize = pAudioNetFrame->uiDecDataPos;
             pAudioDataInfo[iIndex]._leftLength = pAudioNetFrame->uiDecDataPos;
-            pAudioDataInfo[iIndex]._leftData   = (uint8_t*)pAudioNetFrame->pData;
+            pAudioDataInfo[iIndex]._leftData   = (uint8_t*)pAudioNetFrame->pDecData;
             pAudioDataInfo[iIndex]._enabled    = true;
- 
+         //   iPackNums=pAudioNetFrame->uiDecDataPos/iPacketLen;
+           
+
             iIndex++;
             itrAudioFrame++;
         }
@@ -556,17 +564,21 @@ namespace MediaCloud
  
         //mix all audio frame to one audio frame
         pMixData = new unsigned char[uiMixDataSize];
-        MixAudioFrame(pMixData, &uiMixDataSize, lstADFMinor);
+        int iPerPackLen = pADFLeading->tMediaInfo.audio.nChannel*pADFLeading->tMediaInfo.audio.nBitPerSample/8;
+        MixAudioFrame(pMixData, &uiMixDataSize, lstADFMinor, iPerPackLen);
          
         //encode the mixed audio frame
         uint32_t uiEncOutSize=uiMixDataSize;
         unsigned char* pEncOutData=new unsigned char[uiEncOutSize];
-        m_pAVMMixer->EncodeAudioData(pMixData, uiMixDataSize, pEncOutData, (int*)&uiEncOutSize);
+        int iRtn = m_pAVMMixer->EncodeAudioData(pMixData, uiMixDataSize, pEncOutData, (int*)&uiEncOutSize);
         
         //send the encoded and mixed autio to rtmpserver
         MediaInfo audioMediaInfo;
         m_pAVMMixer->GetAudioMediaInfo(audioMediaInfo);
         audioMediaInfo.audio.nTimeStamp=uiTimeStamp;
+    
+        log_info(g_pLogHelper, "send audio to rtmp server. sessionid:%s datalen:%d->%d->%d fid:%d ts:%d decderrtn:%d", GetSessionIDStr().c_str(), 
+                                                        pADFLeading->uiDataLen, uiMixDataSize, uiEncOutSize, pADFLeading->tMediaInfo.frameId, pADFLeading->uiTimeStamp, iRtn);
         m_pAVMMixer->SendData2RtmpServer(pEncOutData, uiEncOutSize, &audioMediaInfo);
         delete[]pEncOutData;
         pEncOutData=NULL;
@@ -821,7 +833,8 @@ namespace MediaCloud
             lstAudioDecFrame.push_back(pAudioNetFrameTmp);
         }
         
-        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s fid:%d leading_ts:%d", m_strSessionID.c_str(), pAudioNetFrameLeading->tMediaInfo.frameId, pAudioNetFrameLeading->uiTimeStamp);
+        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s identity:%d fid:%d leading_ts:%d", m_strSessionID.c_str(), 
+                                 pAudioNetFrameLeading->uiIdentity, pAudioNetFrameLeading->tMediaInfo.frameId, pAudioNetFrameLeading->uiTimeStamp);
         MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
 
         //release audio net frame leading, and other minor's net frame release is in SetCurAudioDecFrame

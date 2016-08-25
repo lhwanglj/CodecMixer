@@ -309,14 +309,14 @@ namespace MediaCloud
         return bRtn;        
     }
 
-    bool CAVMMixer::EncodeAudioData(const unsigned char* pIn, int nInLen, unsigned char* pOut, int* nOutLen)
+    int CAVMMixer::EncodeAudioData(const unsigned char* pIn, int nInLen, unsigned char* pOut, int* nOutLen)
     {
-        bool bRtn=false;
+        int bRtn=false;
         if(NULL==m_pAudioEncoder)
             return bRtn;
 
-        m_pAudioEncoder->Process(pIn, nInLen, pOut, nOutLen);
-        bRtn=true;
+        bRtn = m_pAudioEncoder->Process(pIn, nInLen, pOut, nOutLen);
+        
         return bRtn;
     }
 

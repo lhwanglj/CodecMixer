@@ -81,7 +81,7 @@ bool CCommonStruct::ReadConfig(const char* acpszConfigFilePath)
 	if(strTemp.empty())	
         g_confFile.iLogLevel = 15;
 	else
-        g_confFile.strLogDir=atoi(strTemp.c_str());
+        g_confFile.iLogLevel=atoi(strTemp.c_str());
 	
 	strTemp = iniFile.read("local", "name");
 	if(strTemp.empty())	

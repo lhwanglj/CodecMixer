@@ -73,10 +73,12 @@ namespace MediaCloud
         bool SetNetPeerCount(uint16_t usCount);       
         
         void SetAudioParamType(T_AUDIOPARAM& tAudioParam);        
+        
+        void SetAudioParamType(uint32_t iSampleRate, uint16_t iChannels, uint16_t iBitsPerSample);
         bool SetMergeFrameParam(const T_MERGEFRAMEPARAM& tMFP);
        
         void MixAudioFrameAndSend(PT_AUDIONETFRAME pADFLeading, LST_PT_AUDIONETFRAME& lstADFMinor); 
-        int  MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame);        
+        int  MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame, int iPerPackLen);        
         bool MergeVideoFrame(PT_VIDEONETFRAME pVFMain, LST_PT_VIDEONETFRAME& lstVFLesser);
 
         void MixVideoFrameAndSend(PT_VIDEONETFRAME pVDFLeading, LST_PT_VIDEONETFRAME& lstVDFMinor);            
@@ -98,7 +100,7 @@ namespace MediaCloud
         virtual int HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo);
 
     private:
-        uint8_t    m_pSessionID[AVM_SESSION_ID_LEN];
+        uint8_t     m_pSessionID[AVM_SESSION_ID_LEN];
         string      m_strSessionID;
         string      m_strConfig;
         uint32_t    m_uiTimeout;

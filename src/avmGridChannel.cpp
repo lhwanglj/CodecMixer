@@ -169,6 +169,7 @@ namespace MediaCloud
             }
 
             pExist = new CAVMSession();
+            pExist->SetAudioParamType(44100, 2,  16);
             pExist->SetSessionID(pUserJoinMsg->sessionID);
             pExist->SetTimeout(pUserJoinMsg->uiTimeout);
             pExist->SetCodecMixer(pMixer);

@@ -63,7 +63,7 @@ public:
 
         int  GetAudioDecOutSize();
         bool DecodeAudioData(const unsigned char* pIn, int nInLen, unsigned char* pOut, int* nOutLen);
-        bool EncodeAudioData(const unsigned char* pIn, int nInLen, unsigned char* pOut, int* nOutLen);
+        int EncodeAudioData(const unsigned char* pIn, int nInLen, unsigned char* pOut, int* nOutLen);
         bool MixAudioData(void* output, int packetNum, int packetLen, double sampleTime, AudioMixer::AudioDataInfo* samples, int numStream);        
 
         bool ConvertPic(ImageConvertContext* pContext);
