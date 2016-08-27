@@ -420,7 +420,7 @@ namespace MediaCloud
         audioMediaInfo.identity = pADFLeading->tMediaInfo.identity;
         audioMediaInfo.nStreamType=eAudio;
         audioMediaInfo.nCodec=eAAC;
-        audioMediaInfo.nProfile=1;
+        audioMediaInfo.nProfile=29;
         audioMediaInfo.isContinue=true;
         audioMediaInfo.bHaveVideo=false;
         audioMediaInfo.audio.nSampleRate=AVM_AUDIO_ENCODE_SAMPLERATE;
@@ -434,7 +434,7 @@ namespace MediaCloud
         //m_pAVMMixer->GetAudioMediaInfo(audioMediaInfo);
         //audioMediaInfo.audio.nTimeStamp=uiTimeStamp;
    
-        log_info(g_pLogHelper, "send audio to rtmp server. sessionid:%s datalen:%d->%d->%d fid:%d ts:%d decderrtn:%d", GetSessionIDStr().c_str(), 
+        log_info(g_pLogHelper, "send audio to rtmp server. sessionid:%s datalen:%d->%d->%d fid:%d ts:%d decdertn:%d", GetSessionIDStr().c_str(), 
                                                         pADFLeading->uiDataLen, uiMixDataSize, uiEncOutSize, pADFLeading->tMediaInfo.frameId, pADFLeading->uiTimeStamp, iRtn);
         m_pAVMMixer->SendData2RtmpServer(pEncOutData, uiEncOutSize, &audioMediaInfo);
 

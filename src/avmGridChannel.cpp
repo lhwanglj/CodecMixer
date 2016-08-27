@@ -133,7 +133,7 @@ namespace MediaCloud
             audioFormat.iBitsOfSample    = AVM_AUDIO_ENCODE_BITSPERSAMPLE;//get the value from beaninsession's conf
             audioFormat.iQuality         = 5;
             audioFormat.iProfile         = 29;
-            audioFormat.iHaveAdts        = 1;
+            audioFormat.iHaveAdts        = 0;                //
             audioFormat.ExtParam.iUsevbr = true;
             audioFormat.ExtParam.iUsedtx = true;
             audioFormat.ExtParam.iCvbr   = true;
