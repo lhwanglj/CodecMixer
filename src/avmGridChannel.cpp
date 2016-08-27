@@ -51,7 +51,7 @@ namespace MediaCloud
         if(iPackLen==iPackLenSnd)
             bRtn=true;
         
-        log_info(g_pLogHelper, (char*)"send login to rgrid. name:%d sendlen:%d", g_confFile.tConfSvr.strName.c_str(), iPackLenSnd);
+        log_info(g_pLogHelper, (char*)"message: send login to rgrid. name:%d sendlen:%d", g_confFile.tConfSvr.strName.c_str(), iPackLenSnd);
         return bRtn; 
     }
 
@@ -65,7 +65,7 @@ namespace MediaCloud
         if(iPackLenSnd==iPackLen)
             bRtn=true;        
    
-        //log_notice(g_pLogHelper, (char*)"send keepalive rgrid.");
+        //log_notice(g_pLogHelper, (char*)"message: send keepalive rgrid.");
         return bRtn;
     }
 
@@ -267,7 +267,7 @@ namespace MediaCloud
         while(itr!=m_mapSession.end())
         {
             memcpy(sessionID, itr->first, 16);
-            log_info(g_pLogHelper, (char*)"get a session from map.  sessionid:%s firstptr:%x", GUIDToString(*((T_GUID*)sessionID)).c_str(), itr->first);
+            log_info(g_pLogHelper, (char*)"message: get a session from map.  sessionid:%s firstptr:%x", GUIDToString(*((T_GUID*)sessionID)).c_str(), itr->first);
             pSession=itr->second;
             if(NULL!=pSession)
             {
@@ -276,7 +276,7 @@ namespace MediaCloud
 
                 int iSendLen=m_tcpChannel.SendPacket(pPackReq, iPackReqLen);
                 iRtn++;
-                log_info(g_pLogHelper, (char*)"send beaninsession req successed. name:%s beanid:%d sessionid:%s sndmsgLen:%d", 
+                log_info(g_pLogHelper, (char*)"message: send beaninsession req successed. name:%s beanid:%d sessionid:%s sndmsgLen:%d", 
                                 g_confFile.strName.c_str(), ullBeanID-1, GUIDToString(*((T_GUID*)sessionID)).c_str(), iSendLen);
             }
             itr++;

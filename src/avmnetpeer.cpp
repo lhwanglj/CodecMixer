@@ -543,19 +543,21 @@ namespace MediaCloud
         return NULL;
     }   
    
-/*    
-FILE *g_pfOutAAC = NULL;
-FILE *g_pfOutWav = NULL;
- */
+//wljtest++++++++++++++++++    
+//FILE *g_pfOutAAC = NULL;
+//FILE *g_pfOutWav = NULL;
+//++++++++++++++++++++++
 
     bool CAVMNetPeer::DecAudioNetFrame(PT_AUDIONETFRAME pAudioNF)
     {
 //wljtest++++++++
-//if(NULL==g_pfOutAAC)
-//{
-//    g_pfOutAAC = fopen("audio.aac", "wb");
-//    g_pfOutWav = fopen("audio.pcm", "wb");
-//}
+/*
+if(NULL==g_pfOutAAC)
+{
+    g_pfOutAAC = fopen("audio.aac", "wb");
+    g_pfOutWav = fopen("audio.pcm", "wb");
+}
+*/
 //+++++++++++++++
 
         bool bRtn=false;

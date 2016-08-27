@@ -74,7 +74,7 @@ namespace MediaCloud
         pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xaf);
         pSendBufCur = CBufSerialize::WriteUInt16_Net(pSendBufCur, iMsgLen);
  
-        log_notice(g_pLogHelper, "message: send keepalive to biz server. cur:%d max:%d", g_confFile.iCurRoom, g_confFile.iMaxRoom); 
+        //log_notice(g_pLogHelper, "message: send keepalive to biz server. cur:%d max:%d", g_confFile.iCurRoom, g_confFile.iMaxRoom); 
         iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
         delete[] pMsg;
         pMsg=NULL;

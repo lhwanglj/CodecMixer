@@ -389,6 +389,9 @@ namespace MediaCloud
         return bRtn;
     }
 
+//wljtest+++++++++++++++++++++
+//FILE *pfOutrtmp = NULL;
+//++++++++++++++++++++++++++
     void CAVMSession::MixAudioFrameAndSend(PT_AUDIONETFRAME pADFLeading, LST_PT_AUDIONETFRAME& lstADFMinor)
     {
         //mix audio and send to rtmp server
@@ -434,6 +437,13 @@ namespace MediaCloud
         log_info(g_pLogHelper, "send audio to rtmp server. sessionid:%s datalen:%d->%d->%d fid:%d ts:%d decderrtn:%d", GetSessionIDStr().c_str(), 
                                                         pADFLeading->uiDataLen, uiMixDataSize, uiEncOutSize, pADFLeading->tMediaInfo.frameId, pADFLeading->uiTimeStamp, iRtn);
         m_pAVMMixer->SendData2RtmpServer(pEncOutData, uiEncOutSize, &audioMediaInfo);
+
+ /*   if(NULL==pfOutrtmp)
+    {
+        pfOutrtmp=fopen("audiortmp.aac", "wb");
+    }
+    fwrite(pEncOutData, 1, uiEncOutSize, pfOutrtmp);
+*/
         delete[]pEncOutData;
         pEncOutData=NULL;
         delete[] pMixData;
@@ -821,6 +831,12 @@ namespace MediaCloud
         return bRtn;
     }
 
+
+//wljtest++++++++++++++++++++++
+//FILE *pfOuthpsp = NULL;
+//FILE *pfOutFrame = NULL;
+//++++++++++++++++++++++++++++
+
     //hpsp's callback we will get identity fid stmtype frmtype and data 
     void CAVMSession::HandleRGridFrameRecved(const StmAssembler::Frame &frame)
     {
@@ -831,7 +847,21 @@ namespace MediaCloud
         else
             mInfo.nStreamType=eVideo;
         mInfo.frameId=frame.fid;
-        
+
+//wljtest++++++++++++++++++++++++++++++++++++
+/*
+if(eAudio==mInfo.nStreamType)
+{
+    if(NULL==pfOuthpsp)
+    {
+        pfOuthpsp=fopen("audiohpsp.aac", "wb");
+        pfOutFrame=fopen("audioframe.aac", "wb");
+    }        
+    fwrite(frame.payload, 1, frame.length, pfOuthpsp);
+}
+*/
+//++++++++++++++++++++++++++++++++++++++++++++++++
+
 //        log_info(g_pLogHelper, "RGrid construct a frame. sessionid%s: identity:%d fid:%d stmtype:%d datalen:%d", m_strSessionID.c_str(), 
 //                            mInfo.identity, mInfo.frameId, mInfo.nStreamType, frame.length); 
         m_streamFrame.ParseDownloadFrame((uint8_t*)frame.payload, frame.length, &mInfo, this);
@@ -843,6 +873,9 @@ namespace MediaCloud
     //we will get video frame or audio frame in this api
     int CAVMSession::HandleFrame(unsigned char *pData, unsigned int nSize, MediaInfo* mInfo)
     {
+//if(eAudio==mInfo->nStreamType)
+//    fwrite(pData, 1, nSize, pfOutFrame);
+
         CAVMNetPeer* pPeer=NULL;
         pPeer=FindPeer(mInfo->identity);
         if(NULL==pPeer)
