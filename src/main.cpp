@@ -140,7 +140,6 @@ int main(int argc, char** argv)
     set_log_level(g_pLogHelper, g_confFile.iLogLevel);
 
     log_info(g_pLogHelper, (char*)"main: codecmix start.........................");
-
     signal(SIGPIPE,SIG_IGN);
 
     //connect conf server, get config json
@@ -164,6 +163,11 @@ int main(int argc, char** argv)
     uint32_t uiReqPackLen=pGCRCur-szGetConfReq;
    
     iSendFact = tcpChannel.SendPacket(szGetConfReq, uiReqPackLen);
+    if(0>=iSendFact)
+    {
+        log_err(g_pLogHelper, "send request to config server failed. confSer:%s:%d rtn:%d", g_confFile.pszConfSvrIP, g_confFile.usConfSvrPort, iSendFact);
+        return 0;
+    }
 
     char cType[2];
     uint32_t uijsonLen;
@@ -239,7 +243,10 @@ int main(int argc, char** argv)
             //gridChannel.Start();
         }
         else
-            log_info(g_pLogHelper, (char*)"connect grid server failed. serverinfo:%s:%d", pGridAddr->szIP, pGridAddr->usPort);
+        {
+            log_err(g_pLogHelper, (char*)"connect grid server failed. serverinfo:%s:%d", pGridAddr->szIP, pGridAddr->usPort);
+            return 0;
+        }
     }
 
     //create bizs channel to connect bizs server
@@ -256,7 +263,10 @@ int main(int argc, char** argv)
             bizChannel.Start();
         }
         else
-            log_info(g_pLogHelper, (char*)"connect bizs server successed. serverinfo:%s:%d", pServerAddr->szIP, pServerAddr->usPort );
+        {
+            log_err(g_pLogHelper, (char*)"connect bizs server failed. serverinfo:%s:%d", pServerAddr->szIP, pServerAddr->usPort );
+            return 0;
+        }
     }
 
     while(1)

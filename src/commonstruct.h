@@ -35,7 +35,17 @@ using namespace MediaCloud;
 #define AVM_SESSION_ID_LEN  16
 #define AVM_VERSION_STRING "1.0.0.1"
 
+#define AVM_VIDEO_ENCODE_WIDTH      360
+#define AVM_VIDEO_ENCODE_HEIGHT     480
+#define AVM_VIDEO_ENCODE_FRAMERATE  25
+#define AVM_VIDEO_ENCODE_MAXBITS    650
+#define AVM_VIDEO_ENCODE_STARTBITS  150
+#define AVM_VIDEO_ENCODE_MINBITS    59 
 
+
+#define AVM_AUDIO_ENCODE_SAMPLERATE     44100
+#define AVM_AUDIO_ENCODE_BITSPERSAMPLE  16
+#define AVM_AUDIO_ENCODE_CHANNELS       2
 
 #pragma pack(1)
 typedef struct _tGuid
@@ -62,6 +72,7 @@ typedef struct _tGuid
 #pragma pack()
 
 string GUIDToString(T_GUID guid);
+int AdjustPicStride(unsigned char* pDst, unsigned char* pSrc, int iWidth, int iHeight, int iStrideY, int iStrideUV);
 
 typedef struct t_ServerAddr
 {

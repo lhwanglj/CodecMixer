@@ -13,6 +13,8 @@ namespace MediaCloud
 
     CAVMBizsChannel::CAVMBizsChannel() :m_bStopFlag(false)
                                         , m_pAVMGridChannel(NULL)
+                                        , m_strBizSvrIP("")
+                                        , m_usBizSvrPort(0) 
     {
     }
 
@@ -38,14 +40,14 @@ namespace MediaCloud
         char* pSendBufCur=pMsg;
         int iSendFact=0;
 
-        pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xfa);
-        pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xaf);
-        pSendBufCur = CBufSerialize::WriteUInt16_Net(pSendBufCur, iMsgLen);
+        pSendBufCur=CBufSerialize::WriteUInt8(pSendBufCur, 0Xfa);
+        pSendBufCur=CBufSerialize::WriteUInt8(pSendBufCur, 0Xaf);
+        pSendBufCur=CBufSerialize::WriteUInt16_Net(pSendBufCur, iMsgLen);
         cnMsg.SerializeToArray(pSendBufCur, iMsgLen);
 
-        iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
+        iSendFact=m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
 
-        log_info(g_pLogHelper, "send login to biz server. name:%s sendlen:%d msglen:%d", g_confFile.strName.c_str(), iSendFact, iMsgLen); 
+        log_info(g_pLogHelper, "message: send login to biz server. name:%s sendlen:%d msglen:%d", g_confFile.strName.c_str(), iSendFact, iMsgLen); 
         if(iSendFact==iMsgLen+4)
             bRtn=true;
 
@@ -72,7 +74,7 @@ namespace MediaCloud
         pSendBufCur = CBufSerialize::WriteUInt8(pSendBufCur, 0Xaf);
         pSendBufCur = CBufSerialize::WriteUInt16_Net(pSendBufCur, iMsgLen);
  
-   //   log_info(g_pLogHelper, "send keepalive to biz server. cur:%d max:%d", g_confFile.iCurRoom, g_confFile.iMaxRoom); 
+        log_notice(g_pLogHelper, "message: send keepalive to biz server. cur:%d max:%d", g_confFile.iCurRoom, g_confFile.iMaxRoom); 
         iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
         delete[] pMsg;
         pMsg=NULL;
@@ -98,7 +100,7 @@ namespace MediaCloud
         pMsgCur=CBufSerialize::WriteUInt16_Net(pMsgCur, iMsgLen);
 
         int iSendFact = m_tcpChannel.SendPacket(pMsg, iMsgLen+4);
-        log_info(g_pLogHelper, (char*)"send release session notify to biz server. sessionid:%s  msgLen:%d sendlen:%d", GUIDToString(*((T_GUID*)bSessionID)).c_str(), iMsgLen, iSendFact);
+        log_info(g_pLogHelper, (char*)"message: send release session notify to biz server. sessionid:%s  msgLen:%d sendlen:%d", GUIDToString(*((T_GUID*)bSessionID)).c_str(), iMsgLen, iSendFact);
         
         if(iSendFact=iMsgLen+4)
             bRtn=true;
@@ -146,13 +148,16 @@ namespace MediaCloud
             string strConfig = cnNotify.config(); 
             tUserJoinMsg=new T_USERJOINMSG;
             if(16!=cnNotify.sessionid().size())
-                log_err(g_pLogHelper, "user join in session from bizs server failed. sessinLen:%d", cnNotify.sessionid().size());
+            {
+                log_err(g_pLogHelper, "message: user join in session from bizs server failed. sessinLen:%d", cnNotify.sessionid().size());
+                return;
+            }
 
             memcpy(tUserJoinMsg->sessionID, cnNotify.sessionid().c_str(),16);
             tUserJoinMsg->strConfig=cnNotify.config();
             tUserJoinMsg->uiTimeout=cnNotify.timeout();
            
-            log_info(g_pLogHelper, (char*)"recv user join session notify. sessionid:%s config:%s ", GUIDToString(*((T_GUID*)tUserJoinMsg->sessionID)).c_str(), cnNotify.config().c_str() );
+            log_info(g_pLogHelper, (char*)"message: recv user join session notify. sessionid:%s config:%s ", GUIDToString(*((T_GUID*)tUserJoinMsg->sessionID)).c_str(), cnNotify.config().c_str() );
             int iSize=cnNotify.user_size();
             PT_CCNUSER pCCNUser=NULL;
             for(int i=0;i<iSize;i++)
@@ -162,7 +167,7 @@ namespace MediaCloud
                 pCCNUser->strUserName = cnUser.uid();
                 pCCNUser->uiIdentity = cnUser.identity();
                 tUserJoinMsg->lstUser.push_back(pCCNUser);
-                log_info(g_pLogHelper, (char*)"recv user join session notify. username:%s identity:%d ", pCCNUser->strUserName.c_str(), pCCNUser->uiIdentity);
+                log_info(g_pLogHelper, (char*)"message: recv user join session notify. username:%s identity:%d ", pCCNUser->strUserName.c_str(), pCCNUser->uiIdentity);
             }
 
             if(NULL==tUserJoinMsg)
@@ -188,30 +193,13 @@ namespace MediaCloud
 
         SendLogin();
 
-
-//++++++++++++++++
-/*
-T_USERJOINMSG tUserJoinMsg;
-memset(tUserJoinMsg.sessionID, 8, 16);
-m_pAVMGridChannel->InsertUserJoinMsg(&tUserJoinMsg);
-m_pAVMGridChannel->SendBeanInSession();
-*/
-//++++++++++++++++
-
         while(!m_bStopFlag)
         {
             tmNow = time((time_t*)NULL);
       
             //send keep alive once per 20s
-           /*
-             if(2<tmNow-tmPre)
-            {
-                SendKeepalive();
-                tmPre=tmNow;
-            }
-            */
-        
             SendKeepalive();
+        
             iRecvFact = m_tcpChannel.RecvPacketEx(cType, 1, 500);
             if(iRecvFact<=0)
             {
@@ -226,12 +214,13 @@ m_pAVMGridChannel->SendBeanInSession();
                     }
                     else
                     {
+                        log_err(g_pLogHelper, "biz reconnect failed. biz:%s:%d", m_strBizSvrIP.c_str(), m_usBizSvrPort);
                         usleep(2*1000*1000);    
                     }
                     continue;
                     //peer connect the socket
                 }
-                if(-2==iRecvFact)
+                else if(-2==iRecvFact)
                 {
                     //log_err(g_pLogHelper, "biz recv timeout. ret:%d err:%d", iRecvFact, errno);
                     continue;
@@ -247,12 +236,12 @@ m_pAVMGridChannel->SendBeanInSession();
             if(0xaf!=(uint8_t)cType[1])
                 continue;
 
-            iRecvFact = m_tcpChannel.RecvPacketEx((char*)&uiRecvPackLenTmp, 2, 100);
+            iRecvFact = m_tcpChannel.RecvPacket((char*)&uiRecvPackLenTmp, 2);
             CBufSerialize::ReadUInt16_Net((char*)&uiRecvPackLenTmp, uiRecvPackLen);
             
             pRecvPack=new char[uiRecvPackLen];            
-            iRecvFact = m_tcpChannel.RecvPacketEx(pRecvPack, uiRecvPackLen, 100);
-            if(iRecvFact==uiRecvPackLen)        
+            iRecvFact = m_tcpChannel.RecvPacket(pRecvPack, uiRecvPackLen);
+            if(iRecvFact==uiRecvPackLen)
             {
                 ProcessJoinSessionMsg(pRecvPack, uiRecvPackLen);    
             }

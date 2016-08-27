@@ -99,6 +99,12 @@ namespace MediaCloud
         return bRtn;
     }
 
+#ifdef WLJ_DEBUG
+//wljtest++++++++++
+//FILE *pfOutYUV = NULL;
+//FILE *pfOut264 = NULL;
+//+++++++++++++++++++
+#endif
     void CAVMSession::MixVideoFrameAndSend(PT_VIDEONETFRAME pVDFLeading, LST_PT_VIDEONETFRAME& lstVDFMinor)
     {
          //get all audio frame
@@ -193,218 +199,52 @@ namespace MediaCloud
 
         //encode the mixed video frame
         VideoEncodedList velist;
+        memset(&velist, 0, sizeof(VideoEncodedList));
         FrameDesc frameDesc;
         frameDesc.iFrameType.h264 = kVideoUnknowFrame;
         frameDesc.iPreFramesMiss = false;
-        frameDesc.iPts           = pVideoNetFrameMain->uiTimeStamp;
-        memset(&velist, 0, sizeof(VideoEncodedList));
+        frameDesc.iPts           = pVideoNetFrameMain->tMediaInfo.frameId*1000/25;
+        //frameDesc.iPts           = pVideoNetFrameMain->uiTimeStamp;
         
         m_pAVMMixer->EncodeVideoData((unsigned char*)pVideoNetFrameMain->tPicDecInfo.pPlaneData, pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, &frameDesc,&velist);
-        
+       
+#ifdef WLJ_DEBUG
+//wljtest++++++++++++++
+//unsigned char ucHeader[4];
+//ucHeader[0]=0x00;
+//ucHeader[1]=0x00;
+//ucHeader[2]=0x00;
+//ucHeader[3]=0x01;
+
+//if(NULL==pfOutYUV)
+//    pfOutYUV=fopen("output.yuv", "wb");
+//if(NULL==pfOut264)
+//{
+//    pfOut264=fopen("output.h264", "wb");
+//    fwrite(ucHeader, 1, 4, pfOut264);
+//}
+
+
+//    fwrite(pVideoNetFrameMain->tPicDecInfo.pPlaneData, 1, pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, pfOutYUV);
+//+++++++++++++++++++++        
+#endif
         //send the encoded and mixed video to rtmpserver
         for(int ii=0;ii<velist.iSize;ii++)
         {
             log_info(g_pLogHelper, "send video to rtmp index:%d sessionid:%s dataLen:%d->%d->%d fid:%d  ts:%d", ii, GetSessionIDStr().c_str(), pVideoNetFrameMain->uiDataLen,
                      pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, velist.iPicData[ii].iDataLen , pVideoNetFrameMain->tMediaInfo.frameId,  frameDesc.iPts );
             SendVideo2Rtmp(velist.iPicData+ii, pVideoNetFrameMain);
+
+#ifdef WLJ_DEBUG
+//wljtest++++++++            
+//            fwrite(velist.iPicData[ii].iData, 1, velist.iPicData[ii].iDataLen, pfOut264);
+//            log_info(g_pLogHelper, "write file. yuv:%d 264:%d index:%d", pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, velist.iPicData[ii].iDataLen, ii);
+//++++++++++++++++
+#endif
             free(velist.iPicData[ii].iData);
         }
     }
 
-/*
-    void CAVMSession::MixVideoFrameAndSend(uint32_t usTSFound)
-    {
-        //get all audio frame
-        PT_VIDEONETFRAME pVideoNetFrameMain=NULL;
-        PT_VIDEONETFRAME pVideoNetFrame=NULL;
-        LST_PT_VIDEONETFRAME lstVideoNetFrame;
-        CAVMNetPeer* pPeer=NULL;
-
-        unsigned char* pSrcData=NULL;
-        int iSrcWidth = 0;
-        int iSrcHeight = 0;
-        int iSrcStrideY = 0;
-        int iSrcStrideUV = 0;
-
-        int iDstWidth=0;
-        int iDstHeight=0;
-        int iDstStrideY = 0;
-        int iDstStrideUV = 0;
-        int iDstDataSize = 0;
-        unsigned char* pDstData = NULL;
-
-        for(int i=0;i<m_usPeerCount;i++)
-        {
-            pPeer=m_pPeers[i];
-            pVideoNetFrame=pPeer->GetVideoDecFrameAndPop(usTSFound);
-            assert(NULL==pVideoNetFrame);
-
-            if(E_AVM_PEERROLE_LEADING!=pPeer->GetRoleType())
-            {
-                pSrcData = (unsigned char*)pVideoNetFrame->tPicDecInfo.pPlaneData;
-                iSrcWidth =  pVideoNetFrame->tPicDecInfo.uiWidth;
-                iSrcHeight =  pVideoNetFrame->tPicDecInfo.uiHeight;
-                iSrcStrideY = pVideoNetFrame->tPicDecInfo.iStrides[0];
-                iSrcStrideUV= pVideoNetFrame->tPicDecInfo.iStrides[1];
-
-                iDstWidth = iSrcWidth/4;
-                iDstHeight= iSrcHeight/4;
-                iDstStrideY=iDstWidth;
-                iDstStrideUV=iDstStrideY/2;
-                iDstDataSize=iDstStrideY*iDstHeight*3/2;
-                pDstData=new unsigned char[iDstDataSize];
-
-                //convert the pic  
-                ImageConvertContext context;
-                context.imageSrc.format = kCodecPictureFmtI420;
-                context.imageSrc.width = iSrcWidth;
-                context.imageSrc.height = iSrcHeight;
-                context.imageSrc.stride[0]=iSrcStrideY;
-                context.imageSrc.stride[1]=iSrcStrideUV;
-                context.imageSrc.stride[2]=iSrcStrideUV;
-                context.imageSrc.stride[3]=0;
-                context.imageSrc.plane[0]= (((unsigned char*)(pSrcData))) ;
-                context.imageSrc.plane[1]= (((unsigned char*)(pSrcData))+iSrcWidth*iSrcHeight) ;
-                context.imageSrc.plane[2]= (((unsigned char*)(pSrcData))+(iSrcWidth*iSrcHeight+iSrcStrideUV*iSrcHeight/2)) ;
-                context.imageSrc.plane[3]=NULL;
-
-                context.imageDst.format = kCodecPictureFmtI420;
-                context.imageDst.width=iDstWidth; 
-                context.imageDst.height=iDstHeight;
-                context.imageDst.stride[0]=iDstStrideY;
-                context.imageDst.stride[1]=iDstStrideUV;
-                context.imageDst.stride[2]=iDstStrideUV;
-                context.imageDst.stride[3]=0;
-                context.imageDst.plane[0]=pDstData;
-                context.imageDst.plane[1]=pDstData+iDstStrideY*iDstHeight;
-                context.imageDst.plane[2]=pDstData+iDstStrideY*iDstHeight+iDstStrideUV*iDstHeight/2;
-                context.imageDst.plane[3]=NULL;
-                
-                m_pAVMMixer->ConvertPic(&context);
-                pVideoNetFrame->pConvData=pDstData;
-                pVideoNetFrame->uiConvDataSize=iDstDataSize;
-                pVideoNetFrame->uiConvWidth=iDstWidth;
-                pVideoNetFrame->uiConvHeight=iDstHeight;
-                pVideoNetFrame->uiConvStrideY=iDstStrideY;
-                pVideoNetFrame->uiConvStrideUV=iDstStrideUV;
-                lstVideoNetFrame.push_back(pVideoNetFrame);
-            }
-            else
-                pVideoNetFrameMain=pVideoNetFrame;
-        }
-            
-        //mix all video frame to one video frame
-        MergeVideoFrame(pVideoNetFrameMain, lstVideoNetFrame);
-        
-        //free lstVideoNetFrame
-        PT_VIDEONETFRAME pVFLesser=NULL;
-        ITR_LST_PT_VIDEONETFRAME itrVFLesser=lstVideoNetFrame.begin();
-        while(itrVFLesser!=lstVideoNetFrame.end())
-        {
-            pVFLesser=*itrVFLesser;
-            if(NULL!=pVFLesser)
-            {
-                if(NULL!=pVFLesser->tPicDecInfo.pPlaneData)
-                {
-                    delete[] (char*)pVFLesser->tPicDecInfo.pPlaneData;
-                    pVFLesser->tPicDecInfo.pPlaneData=NULL;
-                    pVFLesser->tPicDecInfo.iPlaneDataPos=0;
-                    pVFLesser->tPicDecInfo.iPlaneDataSize=0;
-                }
-                if(NULL!=pVFLesser->pConvData)
-                {
-                    delete[] (char*)pVFLesser->pConvData;
-                    pVFLesser->pConvData=NULL;
-                    pVFLesser->uiConvDataSize=0;
-                }
-                if(NULL!=pVFLesser->pData)
-                {
-                    delete[] (char*)pVFLesser->pData;
-                    pVFLesser->uiDataLen=0;
-                }
-                delete pVFLesser;
-                pVFLesser=NULL;
-            }
-
-            itrVFLesser++;
-        }  
-        lstVideoNetFrame.clear();
-
-        //encode the mixed video frame
-        VideoEncodedList velist;
-        FrameDesc frameDesc;
-        frameDesc.iFrameType.h264 = kVideoUnknowFrame;
-        frameDesc.iPreFramesMiss = false;
-        frameDesc.iPts           = pVideoNetFrameMain->uiTimeStampAdjust;
-        memset(&velist, 0, sizeof(VideoEncodedList));
-        m_pAVMMixer->DecodeVideoData((unsigned char*)pVideoNetFrameMain->pData, pVideoNetFrameMain->uiDataLen, &frameDesc,&velist);
-
-        //send the encoded and mixed video to rtmpserver
-        for(int ii=0;ii<velist.iSize;ii++)
-        {
-            SendVideo2Rtmp(velist.iPicData+ii, pVideoNetFrameMain);
-            free(velist.iPicData[ii].iData);
-        }
-    }
-
-*/
-
-/*    int CAVMSession::GetAudioTimeStamp(LST_UINT32 lstTS)
-    {
-        LST_UINT32 lstTimeStamp;
-        CAVMNetPeer* pFirstPeer = m_pPeers[0];
-        CAVMNetPeer* pPeerTmp = NULL;
-        assert(NULL==pFirstPeer);
-        pFirstPeer->GetAllAudioTimeStampOfPacket(lstTimeStamp);
-        ITR_LST_UINT32 itrTS = lstTimeStamp.begin();
-        int i=0;
-        uint32_t uiTimesStampFound=0;
-        while(itrTS!=lstTimeStamp.end())
-        {
-            for(i=1;i<m_usPeerCount;i++)
-            {
-                pPeerTmp=m_pPeers[i];
-                if(!pPeerTmp->AudioTimeStampIsExist(*itrTS))
-                    continue;
-            }
-            if(i==m_usPeerCount)
-            {
-                uiTimesStampFound=*itrTS;
-                lstTS.push_back(uiTimesStampFound);
-            }
-            itrTS++;
-        } 
-        return lstTS.size();    
-    }
-
-    int CAVMSession::GetVideoTimeStamp(LST_UINT32 lstTS)
-    {
-        LST_UINT32 lstTimeStamp;
-        CAVMNetPeer* pFirstPeer = m_pPeers[0];
-        CAVMNetPeer* pPeerTmp = NULL;
-        assert(NULL==pFirstPeer);
-        pFirstPeer->GetAllVideoTimeStampOfPacket(lstTimeStamp);
-        ITR_LST_UINT32 itrTS = lstTimeStamp.begin();
-        int i=0;
-        uint32_t uiTimesStampFound=0;
-        while(itrTS!=lstTimeStamp.end())
-        {
-            for(i=1;i<m_usPeerCount;i++)
-            {
-                pPeerTmp=m_pPeers[i];
-                if(!pPeerTmp->VideoTimeStampIsExist(*itrTS))
-                    continue;
-            }
-            if(i==m_usPeerCount)
-            {
-                uiTimesStampFound=*itrTS;
-                lstTS.push_back(uiTimesStampFound);
-            }
-            itrTS++;
-        } 
-        return lstTS.size();    
-    }
-*/
 
     int  CAVMSession::MixAudioFrame(unsigned char* pMixData, uint32_t* piMixDataSize, LST_PT_AUDIONETFRAME& lstAudioNetFrame, int iPerPackLen)
     {
@@ -574,9 +414,23 @@ namespace MediaCloud
         
         //send the encoded and mixed autio to rtmpserver
         MediaInfo audioMediaInfo;
-        m_pAVMMixer->GetAudioMediaInfo(audioMediaInfo);
+        audioMediaInfo.identity = pADFLeading->tMediaInfo.identity;
+        audioMediaInfo.nStreamType=eAudio;
+        audioMediaInfo.nCodec=eAAC;
+        audioMediaInfo.nProfile=1;
+        audioMediaInfo.isContinue=true;
+        audioMediaInfo.bHaveVideo=false;
+        audioMediaInfo.audio.nSampleRate=AVM_AUDIO_ENCODE_SAMPLERATE;
+        audioMediaInfo.audio.nChannel=AVM_AUDIO_ENCODE_CHANNELS;
+        audioMediaInfo.audio.nBitPerSample=AVM_AUDIO_ENCODE_BITSPERSAMPLE;
         audioMediaInfo.audio.nTimeStamp=uiTimeStamp;
-    
+
+        //audioMediaInfo = pADFLeading->tMediaInfo;
+        //audioMediaInfo.nProfile=1;
+        //audioMediaInfo.isContinue=true;
+        //m_pAVMMixer->GetAudioMediaInfo(audioMediaInfo);
+        //audioMediaInfo.audio.nTimeStamp=uiTimeStamp;
+   
         log_info(g_pLogHelper, "send audio to rtmp server. sessionid:%s datalen:%d->%d->%d fid:%d ts:%d decderrtn:%d", GetSessionIDStr().c_str(), 
                                                         pADFLeading->uiDataLen, uiMixDataSize, uiEncOutSize, pADFLeading->tMediaInfo.frameId, pADFLeading->uiTimeStamp, iRtn);
         m_pAVMMixer->SendData2RtmpServer(pEncOutData, uiEncOutSize, &audioMediaInfo);
@@ -597,73 +451,9 @@ namespace MediaCloud
     */
     }
 
-/*
-    void CAVMSession::MixAudioFrameAndSend(uint32_t usTSFound)
-    {
-        //get all audio frame
-        unsigned char* pMixData=NULL;
-        uint32_t       uiMixDataSize=0;        
-        uint32_t       uiTimeStamp=0;
-        
-        PT_AUDIONETFRAME pAudioNetFrame=NULL;            
-        LST_PT_AUDIONETFRAME lstAudioNetFrame;
-        CAVMNetPeer* pPeer=NULL;
-        for(int i=0;i<m_usPeerCount;i++)        
-        {
-            pPeer = m_pPeers[i];
-            pAudioNetFrame = pPeer->GetAudioDecFrameAndPop(usTSFound);
-            assert(NULL==pAudioNetFrame);
-            lstAudioNetFrame.push_back(pAudioNetFrame);
-            if(uiMixDataSize==0)
-            //if(uiMixDataSize<pAudioNetFrame->m_uiDecDataPos)
-                uiMixDataSize=pAudioNetFrame->uiDecDataPos;
-            if(0==uiTimeStamp)
-                uiTimeStamp=pAudioNetFrame->uiTimeStampAdjust;
-        }
-        
-        //mix all audio frame to one audio frame
-        pMixData = new unsigned char[uiMixDataSize];
-        MixAudioFrame(pMixData, &uiMixDataSize, lstAudioNetFrame);                
-
-        //encode the mixed audio frame
-        uint32_t uiEncOutSize = uiMixDataSize;
-        unsigned char* pEncOutData=new unsigned char[uiEncOutSize];
-        m_pAVMMixer->EncodeAudioData(pMixData, uiMixDataSize, pEncOutData, (int*)&uiEncOutSize);
-        
-        //send the encoded and mixed audio to rtmpserver
-        MediaInfo audioMediaInfo;
-        m_pAVMMixer->GetAudioMediaInfo(audioMediaInfo);
-        audioMediaInfo.audio.nTimeStamp = uiTimeStamp;
-        m_pAVMMixer->SendData2RtmpServer(pEncOutData, uiEncOutSize, &audioMediaInfo);
-        
-        delete[] pEncOutData;
-        pEncOutData=NULL;
-        delete[] pMixData;
-        pMixData=NULL;
-        
-        ITR_LST_PT_AUDIONETFRAME itrAudioFrame=lstAudioNetFrame.begin();
-        pAudioNetFrame=NULL;
-        while(itrAudioFrame!=lstAudioNetFrame.end())
-        {
-            pAudioNetFrame=*itrAudioFrame;
-            if(NULL!=pAudioNetFrame)
-            {
-                delete[] (char*)pAudioNetFrame->pData;
-                pAudioNetFrame->pData=NULL;
-                delete[] (char*)pAudioNetFrame->pDecData;
-                pAudioNetFrame->pDecData=NULL;
-                delete pAudioNetFrame;
-                pAudioNetFrame=NULL;
-            }
-            itrAudioFrame++;
-        }
-        lstAudioNetFrame.clear();
-    }
-*/
-    bool CAVMSession::SendVideo2Rtmp(VideoEncodedData * pVEData, PT_VIDEONETFRAME pVideoNetFrame)
+   bool CAVMSession::SendVideo2Rtmp(VideoEncodedData * pVEData, PT_VIDEONETFRAME pVideoNetFrame)
     {
         bool bRtn=false;
-        
         unsigned char * pData = (unsigned char *)pVEData->iData;
         unsigned int nSize = pVEData->iDataLen;
         u_int32_t timestamp=pVEData->iDts;
@@ -686,15 +476,22 @@ namespace MediaCloud
             return bRtn;
         }       
           
+ 
         MediaInfo mVInfo;
-        mVInfo.identity = 1;
+
+        memset(&mVInfo, 0, sizeof(mVInfo));
+       // mVInfo = pVideoNetFrame->tMediaInfo;
+        
+        mVInfo.identity = pVideoNetFrame->tMediaInfo.identity;
         mVInfo.nStreamType = eVideo;
-        mVInfo.nCodec = eH264;
-        mVInfo.frameId = 0;
+        mVInfo.nCodec     = eH264;
+        mVInfo.frameId =0;
+        mVInfo.bHaveVideo=true;
+        mVInfo.isContinue=false;
         mVInfo.video.nType      = frameType;
         mVInfo.video.nWidth = pVideoNetFrame->tPicDecInfo.uiWidth;
         mVInfo.video.nHeight =pVideoNetFrame->tPicDecInfo.uiHeight;
-        mVInfo.video.nFrameRate=m_pAVMMixer->GetVideoFrameRate();
+        mVInfo.video.nFrameRate=AVM_VIDEO_ENCODE_FRAMERATE;
         mVInfo.video.nDtsTimeStamp=pVEData->iDts;
         mVInfo.video.nDtsTimeStampOffset=pVEData->iPts-pVEData->iDts;
 
@@ -789,6 +586,14 @@ namespace MediaCloud
        
         Tick tickPeer; 
         int iWaitCnts=200;
+        
+        tickPeer=m_pLeadingPeer->GetAliveTick();
+        if(tickPeer>m_tickAlive)
+        {
+            m_tickAlive=tickPeer;
+            log_notice(g_pLogHelper, "session timeout set. sessionid:%s alive:%lld timeout:%d", GetSessionIDStr().c_str(), m_tickAlive, m_uiTimeout);
+        }
+
         while(1)
         {
             bFoundAll=true;
@@ -797,7 +602,10 @@ namespace MediaCloud
                 pPeerTmp=m_pPeers[i];
                 tickPeer=pPeerTmp->GetAliveTick();
                 if(tickPeer>m_tickAlive)
+                {
                     m_tickAlive=tickPeer;
+                    log_notice(g_pLogHelper, "session timeout set. sessionid:%s alive:%lld timeout:%d", GetSessionIDStr().c_str(), m_tickAlive, m_uiTimeout);
+                }
 
                 pAudioNetFrameTmp=pPeerTmp->ExistTheSameAudioDecFrame(pAudioNetFrameLeading); 
                 if(NULL==pAudioNetFrameTmp)
@@ -813,9 +621,6 @@ namespace MediaCloud
             usleep(10*1000);
         }
         
-//        if(!bFoundAll)       
-//            return;
- 
         LST_PT_AUDIONETFRAME lstAudioDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
         {
@@ -896,48 +701,6 @@ namespace MediaCloud
         ReleaseVideoNetFrame(pVideoNetFrameLeading);
     }
 
-/*    void CAVMSession::ProcessDecAudio()
-    {
-        //read a audio frame from all peers and the timestamp must the same
-        LST_UINT32 lstTS;
-        int iTSSize=GetAudioTimeStamp(lstTS);
-        if(0>=iTSSize)
-            return;
- 
-        ITR_LST_UINT32 itrTS=lstTS.begin();
-        uint32_t usTSFound=0;
-        while(itrTS!=lstTS.end())
-        {
-            usTSFound=*itrTS;
-            MixAudioFrameAndSend(usTSFound);            
- 
-            itrTS++;
-        }
-    }
-*/
-
-
-/*    void CAVMSession::ProcessDecVideo()
-    {
-        //read a video frame from all peers and the timestamp must the same
-         LST_UINT32 lstTS;
-        int iTSSize=GetVideoTimeStamp(lstTS);
-        //int iTSSize=GetAudioTimeStamp(lstTS);
-        if(0>=iTSSize)
-            return;
- 
-        ITR_LST_UINT32 itrTS=lstTS.begin();
-        uint32_t usTSFound=0;
-        while(itrTS!=lstTS.end())
-        {
-            usTSFound=*itrTS;
-            MixVideoFrameAndSend(usTSFound);            
- 
-            itrTS++;
-        }
-    }
-  */
-
     void CAVMSession::SetConfig(string strConf)
     {
         m_strConfig=strConf; 
@@ -950,7 +713,10 @@ namespace MediaCloud
         now=cppcmn::TickToSeconds(cppcmn::NowEx());
         uint32_t uiSpace = now-m_tickAlive;
         if(uiSpace>m_uiTimeout)
+        {
+            log_info(g_pLogHelper, "session timeout ok. Space:%d now:%lld alive:%lld timeout:%d", uiSpace, now, m_tickAlive, m_uiTimeout);
             bRtn=true;
+        }
         return bRtn;
     }
 
@@ -1088,9 +854,10 @@ namespace MediaCloud
         //add the data to peer cache
         if(eAudio==mInfo->nStreamType)
         {
-            mInfo->audio.nSampleRate=44100;
-            mInfo->audio.nChannel=2;
-            mInfo->audio.nBitPerSample=16;
+            //the audio param need set in here
+            mInfo->audio.nSampleRate=AVM_AUDIO_ENCODE_SAMPLERATE;
+            mInfo->audio.nChannel=AVM_AUDIO_ENCODE_CHANNELS;
+            mInfo->audio.nBitPerSample=AVM_AUDIO_ENCODE_BITSPERSAMPLE;
 
             PT_AUDIONETFRAME pAudioNetFrame = new T_AUDIONETFRAME;
             pAudioNetFrame->pData=new char[nSize];
@@ -1102,7 +869,7 @@ namespace MediaCloud
             pAudioNetFrame->uiTimeStamp=mInfo->audio.nTimeStamp;
             pAudioNetFrame->tMediaInfo=*mInfo;
                         
-            log_info(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d duration:%d ts:%d len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
+            log_notice(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d duration:%d ts:%d len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
                                                   mInfo->nStreamType, pAudioNetFrame->uiDuration,  pAudioNetFrame->uiTimeStamp,  nSize); 
             pPeer->AddAudioData(pAudioNetFrame); 
         }
@@ -1147,7 +914,7 @@ namespace MediaCloud
            pVideoNetFrame->usFrameIndex=mInfo->frameId;
            pVideoNetFrame->tMediaInfo=*mInfo;
             
-           log_info(g_pLogHelper, "recv a video frame identity:%d fid:%d frmtype:%d stmtype:%d duration:%d ts:%d len:%d DataPtr:%x", pVideoNetFrame->uiIdentity, mInfo->frameId,mInfo->video.nType,
+           log_notice(g_pLogHelper, "recv a video frame identity:%d fid:%d frmtype:%d stmtype:%d duration:%d ts:%d len:%d DataPtr:%x", pVideoNetFrame->uiIdentity, mInfo->frameId,mInfo->video.nType,
                                                   mInfo->nStreamType, pVideoNetFrame->uiDuration,  pVideoNetFrame->uiTimeStamp,  nSize, pVideoNetFrame->pData); 
            pPeer->AddVideoData(pVideoNetFrame);                               
        }

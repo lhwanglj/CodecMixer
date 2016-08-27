@@ -350,7 +350,6 @@ namespace MediaCloud
         
         PT_VIDEONETFRAME m_pVideoNetSPSFrame;
         PT_VIDEONETFRAME m_pVideoNetPPSFrame;
-    
     };
 }
 

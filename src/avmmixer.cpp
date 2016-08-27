@@ -388,7 +388,6 @@ namespace MediaCloud
 
         bRtn = true;
         return bRtn;
-                
     }
 
     void CAVMMixer::SetPicMixConf(T_PICMIXCONF tPicMixConf)

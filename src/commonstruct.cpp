@@ -45,6 +45,30 @@ T_GUID StringToGUID(const char *str)
 }
 
 
+int AdjustPicStride(unsigned char* pDst, unsigned char* pSrc, int iWidth, int iHeight, int iStrideY, int iStrideUV)
+{
+    int iSrcWidth = iWidth;
+    int iSrcHeight = iHeight;
+    int iSrcStrideY = iStrideY;
+    int iSrcStrideUV = iStrideUV;
+    int iSrcDataSize = iSrcWidth*iSrcHeight*3/2;
+
+    int iPosCur=0;
+    int i=0;
+    for(i=0;i<iSrcHeight; i++)
+    {
+        memcpy(pDst+iPosCur, pSrc+i*iSrcStrideY, iSrcWidth);
+        iPosCur+=iSrcWidth;
+    }
+    for(i=0;i<iSrcHeight; i++)
+    {
+        memcpy(pDst+iPosCur, pSrc+iSrcStrideY*iSrcHeight+i*iSrcStrideUV, iSrcWidth/2);
+        iPosCur+=(iSrcWidth/2);
+    }
+    return iSrcDataSize;
+}
+
+
 bool CCommonStruct::ReadConfig(const char* acpszConfigFilePath)
 {
 	CIniFile iniFile;

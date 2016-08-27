@@ -499,7 +499,7 @@ void* h2642rtmp()
                     //send h264 data to rtmp server
                     for(int ii=0;ii<velist.iSize;ii++)     
                     {
-                        pushvideoEx(pRtmpWriter,velist.iPicData+ii ); 
+                        pushvideoEx(pRtmpWriter,velist.iPicData+ii); 
                         free(velist.iPicData[ii].iData);
                     }
 

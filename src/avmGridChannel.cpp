@@ -18,6 +18,8 @@ namespace MediaCloud
     CAVMGridChannel::CAVMGridChannel() :m_bStopFlag(false)
                                         , m_pBizsChannel(NULL)
                                         , m_csMapSession(NULL)
+                                        , m_strRGridSvrIP("")
+                                        , m_usRGridSvrPort(0) 
     {
         m_csMapSession=new CriticalSection();
     }
@@ -63,7 +65,7 @@ namespace MediaCloud
         if(iPackLenSnd==iPackLen)
             bRtn=true;        
    
-        //log_info(g_pLogHelper, (char*)"send keepalive rgrid.");
+        //log_notice(g_pLogHelper, (char*)"send keepalive rgrid.");
         return bRtn;
     }
 
@@ -84,10 +86,7 @@ namespace MediaCloud
       
         //find the session
         ScopedCriticalSection cs(m_csMapSession);
-//        m_csMapSession->Enter();
         PT_CAVMSESSION pSession=m_mapSession[(uint8_t*)gpStream.sessionId.ptr];
-//        m_csMapSession->Leave();
-
         if(NULL==pSession)
         {
             log_err(g_pLogHelper, "not find session. session:%s datalen:%d ", GUIDToString(*((T_GUID*)gpStream.sessionId.ptr)).c_str()); 
@@ -100,38 +99,39 @@ namespace MediaCloud
     int CAVMGridChannel::InsertUserJoinMsg(PT_USERJOINMSG pUserJoinMsg)
     {
         ScopedCriticalSection cs(m_csMapSession);
-       // m_csMapSession->Enter();
         CAVMSession* pExist=NULL;
         ITR_MAP_PT_CAVMSESSION itrS=m_mapSession.find(pUserJoinMsg->sessionID);
         if(itrS!=m_mapSession.end())
             pExist = itrS->second;
-       // m_csMapSession->Leave();
         
-        log_info(g_pLogHelper, "insert user join message %x sessionid:%s", pUserJoinMsg->sessionID, GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
-        
+        log_info(g_pLogHelper, "insert user join message sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
         char szIdentity[16];
         if(NULL==pExist)
         {
             CAVMMixer* pMixer = new CAVMMixer();
             if(!pMixer->CreatePicConvert())
             {
+                log_err(g_pLogHelper, "insert user join message create picconvert failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
             }
             //the url need get the value from beaninsession's conf 
-            if(!pMixer->CreateRtmpAgent("rtmp://101.201.146.134/hulu/wlj_test.flv"))
+            if(!pMixer->CreateRtmpAgent("rtmp://101.201.146.134/hulu/wlj_test"))
             {
+                log_err(g_pLogHelper, "insert user join message create rtmp agent failed sessionid:%s rtmpaddr:%s", 
+                                GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str(), "rtmp://101.201.146.134/hulu/wlj_test.flv");
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
             }
+
            // pMixer->CreateAudioMixer();//need create after new stream coming
             AudioCodecParam audioFormat = {0};
-            audioFormat.iSampleRate      = 44100;//get the value from beaninsession's conf
-            audioFormat.iNumOfChannels   = 2;//get the value from beaninsession's conf
+            audioFormat.iSampleRate      = AVM_AUDIO_ENCODE_SAMPLERATE;//get the value from beaninsession's conf
+            audioFormat.iNumOfChannels   = AVM_AUDIO_ENCODE_CHANNELS;//get the value from beaninsession's conf
+            audioFormat.iBitsOfSample    = AVM_AUDIO_ENCODE_BITSPERSAMPLE;//get the value from beaninsession's conf
             audioFormat.iQuality         = 5;
-            audioFormat.iBitsOfSample    = 16;//get the value from beaninsession's conf
             audioFormat.iProfile         = 29;
             audioFormat.iHaveAdts        = 1;
             audioFormat.ExtParam.iUsevbr = true;
@@ -143,6 +143,7 @@ namespace MediaCloud
             audioFormat.ExtParam.iFrameDuration = 20 * 10;
             if(!pMixer->CreateAudioEncoder(kAudioCodecFDKAAC, audioFormat))
             {
+                log_err(g_pLogHelper, "insert user join message create audio encoder failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
@@ -151,35 +152,33 @@ namespace MediaCloud
             VideoCodecParam encParam;
             memset(&encParam, 0, sizeof(VideoCodecParam));
             encParam.encoder.iPicFormat  = kCodecPictureFmtI420;
-            encParam.encoder.iFrameRate  = 25;   //get the value from beaninsession's conf
-            encParam.encoder.iWidth      = 360;  //get the value from beaninsession's conf
-            encParam.encoder.iHeight     = 480;  //get the value from beaninsession's conf
-            encParam.encoder.iMaxBitrate = 150;  //get the value from beaninsession's conf
-            encParam.encoder.iStartBitrate = 150;//get the value from beaninsession's conf
-            encParam.encoder.iMinBitrate   = 50;
+            encParam.encoder.iFrameRate  = AVM_VIDEO_ENCODE_FRAMERATE;   //get the value from beaninsession's conf
+            encParam.encoder.iWidth      = AVM_VIDEO_ENCODE_WIDTH;  //get the value from beaninsession's conf
+            encParam.encoder.iHeight     = AVM_VIDEO_ENCODE_HEIGHT;  //get the value from beaninsession's conf
+            encParam.encoder.iMaxBitrate = AVM_VIDEO_ENCODE_MAXBITS;  //get the value from beaninsession's conf
+            encParam.encoder.iStartBitrate = AVM_VIDEO_ENCODE_STARTBITS;//get the value from beaninsession's conf
+            encParam.encoder.iMinBitrate   = AVM_VIDEO_ENCODE_MINBITS;
             encParam.encoder.qpMax         = 56;
             encParam.encoder.iProfile      = kComplexityNormal;
             encParam.feedbackModeOn        = false;
             encParam.numberofcores         = 2;
             if(!pMixer->CreateVideoEncoder(kVideoCodecH264, encParam))
             {
+                log_err(g_pLogHelper, "insert user join message create video encoder failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
             }
 
             pExist = new CAVMSession();
-            pExist->SetAudioParamType(44100, 2,  16);
+            pExist->SetAudioParamType(AVM_AUDIO_ENCODE_SAMPLERATE, AVM_AUDIO_ENCODE_CHANNELS,  AVM_AUDIO_ENCODE_BITSPERSAMPLE);
             pExist->SetSessionID(pUserJoinMsg->sessionID);
             pExist->SetTimeout(pUserJoinMsg->uiTimeout);
             pExist->SetCodecMixer(pMixer);
             pExist->StartProcessAudioThread();
             pExist->StartProcessVideoThread();
             
-        //    m_csMapSession->Enter();
             m_mapSession[pExist->GetSessionID()]=pExist;
-        //    m_csMapSession->Leave();
-            
             log_info(g_pLogHelper, (char*)"insert a session join msg sessid:%s firstptr:%x", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pExist->GetSessionID());
         }
         else
@@ -205,12 +204,16 @@ namespace MediaCloud
                         pPeer->SetUserIdentity(pUser->uiIdentity);
                         pExist->SetLeadingPeer(pPeer);
                         pPeer->InitNP();
+                        log_info(g_pLogHelper, (char*)"insert a session add leading peer sessid:%s identity:%d ", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pUser->uiIdentity);
                         pPeer->StartAudioDecThread();
                         pPeer->StartVideoDecThread();
                     }
                 //}
                 else
+                {
                     pExist->AddPeer(pUser);
+                    log_info(g_pLogHelper, (char*)"insert a session add minor peer sessid:%s identity:%d ", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pUser->uiIdentity);
+                }
             }
             itr++;
         }
@@ -231,8 +234,7 @@ namespace MediaCloud
             {
                 if(pSession->IsTimeout())
                 {
-                    log_info(g_pLogHelper, "session timeout. be destoried sid:%x ", pSession->GetSessionIDStr().c_str());
-                    
+                    log_info(g_pLogHelper, "session timeout. be destoried sid:%s ", pSession->GetSessionIDStr().c_str());
                     m_mapSession.erase(itr);
                     pSession->DestorySession();
                     delete pSession;
@@ -305,7 +307,7 @@ namespace MediaCloud
             //send keep alive once per 20s
            
             SendKeepalive();
-            //DestoryOldSession();            
+            DestoryOldSession();            
            
             if(0>=iSessionLen || 10<tmNow-tmPre)
             {
@@ -313,13 +315,12 @@ namespace MediaCloud
                 tmPre=tmNow;
             }
            
-           
             iRecvFact = m_tcpChannel.RecvPacketEx(cType, 1, 500);
             if(iRecvFact<=0)
             {
                 if(0==iRecvFact||-1==iRecvFact)
                 {
-                    log_err(g_pLogHelper, "rgrid connect failed.peer close the connect ret:%d err:%d", iRecvFact, errno);
+                    log_err(g_pLogHelper, "rgrid connect failed. peer close the connect ret:%d err:%d", iRecvFact, errno);
                     usleep(500*1000);
                     DestoryChannel();
                     if(CreateAndConnect((char*)m_strRGridSvrIP.c_str(), m_usRGridSvrPort))
@@ -328,6 +329,7 @@ namespace MediaCloud
                     }
                     else
                     {
+                        log_err(g_pLogHelper, "rgrid reconnect failed. rgrid:%s:%d", m_strRGridSvrIP.c_str(), m_usRGridSvrPort);
                         usleep(2*1000*1000);
                     }
                     continue;
@@ -352,13 +354,11 @@ namespace MediaCloud
             iRecvFact = m_tcpChannel.RecvPacket((char*)&uiRecvPackLenTmp, 2);
             iProtoType=(uiRecvPackLenTmp[0]>>4);
             uiRecvPackLen = (uiRecvPackLenTmp[0]&0xf)<<8 | uiRecvPackLenTmp[1];
-            //log_info(g_pLogHelper, "recv a pack'len from grid server++++++++++++. iRecvFact:%d prototype:%d ", uiRecvPackLen, iProtoType); 
  
             pRecvPack=new char[uiRecvPackLen];            
             iRecvFact = m_tcpChannel.RecvPacket(pRecvPack, uiRecvPackLen);
             if(iRecvFact==uiRecvPackLen)        
             {
-               // log_info(g_pLogHelper, "recv a packet from grid. iRecvFact:%d prototype:%d ", iRecvFact, iProtoType); 
                 ProcessRecvPacket(pRecvPack, uiRecvPackLen, iProtoType);    
             }
              
@@ -402,8 +402,6 @@ namespace MediaCloud
         if(0==iRtn)
             bRtn=true;
         return bRtn;
-     //   pthread_t   m_idWorkThread;
-     //   bool        m_bStopFlag;
 
     }
     void CAVMGridChannel::Stop()
