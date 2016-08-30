@@ -17,15 +17,20 @@ namespace MediaCloud
     CAVMSession::CAVMSession():m_pLeadingPeer(NULL)
                                 ,m_usPeerCount(0)
                                 ,m_pAVMMixer(NULL)
+                                , m_idProcessAudioThread(-1)
+                                , m_idProcessVideoThread(-1)
                               
     {
         m_pstmAssembler = new  StmAssembler(this); 
         memset(m_pSessionID, 0, AVM_SESSION_ID_LEN);
+        m_bStopProcessAudioThreadFlag=(false);
+        m_bStopProcessVideoThreadFlag=(false);
     }
 
     CAVMSession::~CAVMSession()
     {
-
+        delete m_pstmAssembler;
+        m_pstmAssembler=NULL;
     }
 
     void CAVMSession::DestorySession()
@@ -532,6 +537,7 @@ namespace MediaCloud
     bool CAVMSession::StartProcessAudioThread()
     {
         bool bRtn=false;
+        m_bStopProcessAudioThreadFlag=false;
         int iRtn=pthread_create(&m_idProcessAudioThread, NULL, ProcessAudioThreadEntry, this);
         if(0==iRtn)
             bRtn=true;
@@ -540,6 +546,8 @@ namespace MediaCloud
 
     void CAVMSession::StopProcessAudioThread()
     {
+        if(-1==m_idProcessAudioThread)
+            return;
         m_bStopProcessAudioThreadFlag=true;
         //pthread_join(m_idProcessAudioThread, NULL);
         pthread_cancel(m_idProcessAudioThread);
@@ -567,6 +575,7 @@ namespace MediaCloud
     bool CAVMSession::StartProcessVideoThread()
     {
         bool bRtn=false;
+        m_bStopProcessVideoThreadFlag=false;
         int iRtn=pthread_create(&m_idProcessVideoThread, NULL, ProcessVideoThreadEntry, this);
         if(0==iRtn)
             bRtn=true;
@@ -575,6 +584,8 @@ namespace MediaCloud
 
     void CAVMSession::StopProcessVideoThread()
     {
+        if(-1==m_idProcessVideoThread)
+            return;
         m_bStopProcessVideoThreadFlag=true;
         //pthread_join(m_idProcessVideoThread, NULL);
         pthread_cancel(m_idProcessVideoThread);
@@ -607,6 +618,9 @@ namespace MediaCloud
         while(1)
         {
             bFoundAll=true;
+            if(m_bStopProcessAudioThreadFlag)
+                pthread_exit(NULL); 
+            
             for(int i=1;i<m_usPeerCount;i++)
             {
                 pPeerTmp=m_pPeers[i];
@@ -634,14 +648,17 @@ namespace MediaCloud
         LST_PT_AUDIONETFRAME lstAudioDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
         {
+            if(m_bStopProcessAudioThreadFlag)
+                pthread_exit(NULL); 
+
             pPeerTmp=m_pPeers[i];
             pAudioNetFrameTmp=pPeerTmp->ExistTheSameAudioDecFrameAndPop(pAudioNetFrameLeading);
             //if not found the frame of other peer's, we only mix the exist frame
             if(NULL==pAudioNetFrameTmp)
             {
-                pAudioNetFrameTmp=pPeerTmp->GetCurAudioDecFrame();
-                if(NULL==pAudioNetFrameTmp)
-                    return;
+              //  pAudioNetFrameTmp=pPeerTmp->GetCurAudioDecFrame();
+              //  if(NULL==pAudioNetFrameTmp)
+                    continue;
             }
             else
                 pPeerTmp->SetCurAudioDecFrame(pAudioNetFrameTmp);
@@ -671,6 +688,9 @@ namespace MediaCloud
         int iWaitCnts=200;
         while(1)
         {
+            if(m_bStopProcessVideoThreadFlag)
+                pthread_exit(NULL); 
+
             bFoundAll=true;
             for(int i=1;i<m_usPeerCount;i++)
             {
@@ -692,13 +712,16 @@ namespace MediaCloud
         LST_PT_VIDEONETFRAME lstVideoDecFrame;
         for(int i=1;i<m_usPeerCount;i++)
         {
+            if(m_bStopProcessVideoThreadFlag)
+                pthread_exit(NULL); 
+
             pPeerTmp=m_pPeers[i];
             pVideoNetFrameTmp=pPeerTmp->ExistTheSameVideoDecFrameAndPop(pVideoNetFrameLeading);
             if(NULL==pVideoNetFrameTmp)
             {
                 pVideoNetFrameTmp=pPeerTmp->GetCurVideoDecFrame();
                 if(NULL==pVideoNetFrameTmp)
-                    return;
+                    continue;
             }
             else
                 pPeerTmp->SetCurVideoDecFrame(pVideoNetFrameTmp);
@@ -721,6 +744,9 @@ namespace MediaCloud
         bool bRtn=false;
         Tick now;
         now=cppcmn::TickToSeconds(cppcmn::NowEx());
+        if(now<=m_tickAlive)
+            return bRtn;        
+
         uint32_t uiSpace = now-m_tickAlive;
         if(uiSpace>m_uiTimeout)
         {

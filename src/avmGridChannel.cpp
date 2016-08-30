@@ -104,14 +104,14 @@ namespace MediaCloud
         if(itrS!=m_mapSession.end())
             pExist = itrS->second;
         
-        log_info(g_pLogHelper, "insert user join message sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
         char szIdentity[16];
         if(NULL==pExist)
         {
+
             CAVMMixer* pMixer = new CAVMMixer();
             if(!pMixer->CreatePicConvert())
             {
-                log_err(g_pLogHelper, "insert user join message create picconvert failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
+                log_err(g_pLogHelper, "create picconvert failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
@@ -119,14 +119,14 @@ namespace MediaCloud
             //the url need get the value from beaninsession's conf 
             if(!pMixer->CreateRtmpAgent("rtmp://101.201.146.134/hulu/wlj_test"))
             {
-                log_err(g_pLogHelper, "insert user join message create rtmp agent failed sessionid:%s rtmpaddr:%s", 
+                log_err(g_pLogHelper, "create rtmp agent failed sessionid:%s rtmpaddr:%s", 
                                 GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str(), "rtmp://101.201.146.134/hulu/wlj_test.flv");
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
             }
 
-           // pMixer->CreateAudioMixer();//need create after new stream coming
+            // pMixer->CreateAudioMixer();//need create after new stream coming
             AudioCodecParam audioFormat = {0};
             audioFormat.iSampleRate      = AVM_AUDIO_ENCODE_SAMPLERATE;//get the value from beaninsession's conf
             audioFormat.iNumOfChannels   = AVM_AUDIO_ENCODE_CHANNELS;//get the value from beaninsession's conf
@@ -143,7 +143,7 @@ namespace MediaCloud
             audioFormat.ExtParam.iFrameDuration = 20 * 10;
             if(!pMixer->CreateAudioEncoder(kAudioCodecFDKAAC, audioFormat))
             {
-                log_err(g_pLogHelper, "insert user join message create audio encoder failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
+                log_err(g_pLogHelper, "create audio encoder failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
@@ -164,7 +164,7 @@ namespace MediaCloud
             encParam.numberofcores         = 2;
             if(!pMixer->CreateVideoEncoder(kVideoCodecH264, encParam))
             {
-                log_err(g_pLogHelper, "insert user join message create video encoder failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
+                log_err(g_pLogHelper, "create video encoder failed sessionid:%s", GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str());
                 delete pMixer;
                 pMixer=NULL;
                 return -1;
@@ -179,11 +179,14 @@ namespace MediaCloud
             pExist->StartProcessVideoThread();
             
             m_mapSession[pExist->GetSessionID()]=pExist;
-            log_info(g_pLogHelper, (char*)"insert a session join msg sessid:%s firstptr:%x", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pExist->GetSessionID());
+            log_info(g_pLogHelper, (char*)"create new session map. sessid:%s", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str());
         }
         else
+        {
             pExist->SetTimeout(pUserJoinMsg->uiTimeout);
-        
+            log_info(g_pLogHelper, "the session is exist, only modify timeout value. sessionid:%s", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str());
+        }
+      
         //add peer to session's  peer list
         ITR_LST_PT_CCNUSER itr=pUserJoinMsg->lstUser.begin();
         PT_CCNUSER pUser = NULL;
@@ -204,7 +207,7 @@ namespace MediaCloud
                         pPeer->SetUserIdentity(pUser->uiIdentity);
                         pExist->SetLeadingPeer(pPeer);
                         pPeer->InitNP();
-                        log_info(g_pLogHelper, (char*)"insert a session add leading peer sessid:%s identity:%d ", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pUser->uiIdentity);
+                        log_info(g_pLogHelper, (char*)"add leading peer to session. sessid:%s identity:%d ", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pUser->uiIdentity);
                         pPeer->StartAudioDecThread();
                         pPeer->StartVideoDecThread();
                     }
@@ -212,7 +215,7 @@ namespace MediaCloud
                 else
                 {
                     pExist->AddPeer(pUser);
-                    log_info(g_pLogHelper, (char*)"insert a session add minor peer sessid:%s identity:%d ", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pUser->uiIdentity);
+                    log_info(g_pLogHelper, (char*)"add minor peer to session sessid:%s identity:%d ", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pUser->uiIdentity);
                 }
             }
             itr++;
@@ -234,7 +237,7 @@ namespace MediaCloud
             {
                 if(pSession->IsTimeout())
                 {
-                    log_info(g_pLogHelper, "session timeout. be destoried sid:%s ", pSession->GetSessionIDStr().c_str());
+                    log_info(g_pLogHelper, "session timeout. destoried the session sid:%s ", pSession->GetSessionIDStr().c_str());
                     m_mapSession.erase(itr);
                     pSession->DestorySession();
                     delete pSession;
@@ -311,7 +314,7 @@ namespace MediaCloud
            
             if(0>=iSessionLen || 10<tmNow-tmPre)
             {
-                iSessionLen=SendBeanInSession();
+              iSessionLen=SendBeanInSession();
                 tmPre=tmNow;
             }
            

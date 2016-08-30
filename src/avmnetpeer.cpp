@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <assert.h>
 #include "avmnetpeer.h"
 #include "Log.h"
 #include "stmassembler.h"
@@ -232,7 +233,7 @@ namespace MediaCloud
         if(nullptr!=pSlot) 
         {
             PT_AUDIONETFRAME ptAudioNetFrame = *reinterpret_cast<T_AUDIONETFRAME**>(pSlot->body);
-            
+
             //decode the first audio net frame
             if(0==m_usCurAudioNetFrameID)
             {
@@ -276,14 +277,24 @@ namespace MediaCloud
                 }
                 else
                 {
+                    //wait 2 seconds for the next correct audio net frame
                     //wait a moment for the next correct audio net frame
                     //if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE >= m_fqAudioNetFrame.FrameCount())
-                    if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE >= cppcmn::FrameIdComparer::Distance(ptAudioNetFrame->tMediaInfo.frameId, m_usCurAudioNetFrameID) )
+                    //if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE >= cppcmn::FrameIdComparer::Distance(ptAudioNetFrame->tMediaInfo.frameId, m_usCurAudioNetFrameID) )
+                   // if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE >= m_fqAudioNetFrame.FrameCount())
+                    static time_t tmWaitNextAudioNetFrame=0;
+                    time_t tmNow = time(NULL);
+                    uint32_t uiSpace = tmNow-tmWaitNextAudioNetFrame;
+                    if(0==tmWaitNextAudioNetFrame || 2>uiSpace)
                     {
-                         log_info(g_pLogHelper, "waiting next audio frame, identity:%d curfid:%d", m_uiUserIdentity, m_usCurAudioNetFrameID );
+                         if(0==tmWaitNextAudioNetFrame)
+                             tmWaitNextAudioNetFrame=tmNow;
+                         log_info(g_pLogHelper, "waiting next audio frame, identity:%d curfid:%d frmqueue_firstid:%d(%d)", m_uiUserIdentity, 
+                                        m_usCurAudioNetFrameID, ptAudioNetFrame->tMediaInfo.frameId, m_fqAudioNetFrame.FrameCount() );
                          return FRAMEQUEUE_AUDIO::VisitorRes::Stop;
                     }
                    
+                    tmWaitNextAudioNetFrame=0;
                     m_usCurAudioNetFrameID=0; 
                     //wait a long time direct decode the next audio net frame
                     if(DecAudioNetFrame(ptAudioNetFrame))
@@ -316,6 +327,7 @@ namespace MediaCloud
         if(nullptr!=pSlot)
         {
             PT_VIDEONETFRAME pVideoNetFrame=*reinterpret_cast<T_VIDEONETFRAME**>(pSlot->body);
+
             if(0==m_usCurVideoNetFrameID)
             {
                 if(eIDRFrame==pVideoNetFrame->tMediaInfo.video.nType || eIFrame==pVideoNetFrame->tMediaInfo.video.nType)
@@ -335,6 +347,9 @@ namespace MediaCloud
                         ReleaseVideoNetFrame(pVideoNetFrame);                        
                     }
                 }
+                else
+                    ReleaseVideoNetFrame(pVideoNetFrame);                        
+                    
                 return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;                
             }
             else
@@ -367,12 +382,19 @@ namespace MediaCloud
                 else
                 {
                     //if(AVM_MAX_VIDEO_FRAMEQUEUE_SIZE > m_fqVideoNetFrame.FrameCount())
-                    if(AVM_MAX_VIDEO_FRAMEQUEUE_SIZE > cppcmn::FrameIdComparer::Distance(pVideoNetFrame->tMediaInfo.frameId, m_usCurVideoNetFrameID))
+                    //if(AVM_MAX_VIDEO_FRAMEQUEUE_SIZE > cppcmn::FrameIdComparer::Distance(pVideoNetFrame->tMediaInfo.frameId, m_usCurVideoNetFrameID))
+                    static time_t tmWaitNextVideoNetFrame=0;
+                    time_t tmNow = time(NULL);
+                    uint32_t uiSpace = tmNow-tmWaitNextVideoNetFrame;
+                    if(0==tmWaitNextVideoNetFrame || 2>uiSpace)
                     {
+                         if(0==tmWaitNextVideoNetFrame)
+                             tmWaitNextVideoNetFrame=tmNow;
                         log_info(g_pLogHelper, "waiting next video frame, identity:%d fid:%d", m_uiUserIdentity, m_usCurVideoNetFrameID );
                         return FRAMEQUEUE_VIDEO::VisitorRes::Stop;
                     }
                     
+                    tmWaitNextVideoNetFrame=0;
                     m_usCurVideoNetFrameID=0;
                     if(eIDRFrame==pVideoNetFrame->tMediaInfo.video.nType || eIFrame==pVideoNetFrame->tMediaInfo.video.nType)
                     {
@@ -389,6 +411,9 @@ namespace MediaCloud
                             ReleaseVideoNetFrame(pVideoNetFrame);
                         }
                     }
+                    else
+                        ReleaseVideoNetFrame(pVideoNetFrame);
+                        
                     return FRAMEQUEUE_VIDEO::VisitorRes::DeletedContinue;
                 }
             }  
@@ -774,6 +799,7 @@ if(NULL==g_pfOutAAC)
     {
         if(NULL != ptAudioNetFrame)
         {
+            log_info(g_pLogHelper, "release audio frame fid:%d", ptAudioNetFrame->tMediaInfo.frameId);
             //release audio net frame
             if(NULL!=ptAudioNetFrame->pData)
             {
@@ -794,6 +820,7 @@ if(NULL==g_pfOutAAC)
     {
         if(NULL!=pVideoNF)
         {
+            log_info(g_pLogHelper, "release video frame fid:%d", pVideoNF->tMediaInfo.frameId);
             if(NULL!=pVideoNF->pData)
             {
                delete[] (char*)pVideoNF->pData;
@@ -826,10 +853,18 @@ if(NULL==g_pfOutAAC)
             if(bIsNew)
                 *reinterpret_cast<T_AUDIONETFRAME**>(slot->body)=pAudioNetFrame;
             else
+            {
+                log_info(g_pLogHelper, "insert audio to dec queue, the fid is exist. fid:%d begfid:%d(%d)", 
+                    pAudioNetFrame->tMediaInfo.frameId, m_fqAudioDecFrame.FrameIdBegin(), m_fqAudioDecFrame.FrameCount());
                 ReleaseAudioNetFrame(pAudioNetFrame);
+            }
         }
         else
+        {
+            log_info(g_pLogHelper, "insert audio to dec queue, the fid is old . fid:%d begfid:%d(%d)", 
+                    pAudioNetFrame->tMediaInfo.frameId, m_fqAudioDecFrame.FrameIdBegin(), m_fqAudioDecFrame.FrameCount());
             ReleaseAudioNetFrame(pAudioNetFrame);
+        }
  
         bRtn=true;
         return bRtn;
@@ -847,10 +882,18 @@ if(NULL==g_pfOutAAC)
             if(bIsNew)
                 *reinterpret_cast<T_VIDEONETFRAME**>(slot->body)=pVideoNetFrame;
             else
+            {
+                log_info(g_pLogHelper, "insert video to dec queue, the fid is exist. fid:%d begfid:%d(%d)", 
+                    pVideoNetFrame->tMediaInfo.frameId, m_fqVideoDecFrame.FrameIdBegin(), m_fqVideoDecFrame.FrameCount());
                 ReleaseVideoNetFrame(pVideoNetFrame);
+            }
         }
         else
+        {
+            log_info(g_pLogHelper, "insert video to dec queue, the fid is old. fid:%d begfid:%d(%d)", 
+                    pVideoNetFrame->tMediaInfo.frameId, m_fqVideoDecFrame.FrameIdBegin(), m_fqVideoDecFrame.FrameCount());
             ReleaseVideoNetFrame(pVideoNetFrame);
+        }
 
         bRtn=true;
         return bRtn;
@@ -874,7 +917,8 @@ if(NULL==g_pfOutAAC)
         else
              ptAudioNetFrame->uiTimeStampAdjust = (uiConsult+0)*ptAudioNetFrame->uiDuration;
 */
-        
+       
+
         bool bIsNew=false;
         auto* slot = m_fqAudioNetFrame.Insert(ptAudioNetFrame->tMediaInfo.frameId, bIsNew, ReleaseAudioNetFrameCB, this);
         if(nullptr!=slot)
@@ -882,8 +926,8 @@ if(NULL==g_pfOutAAC)
            if(bIsNew) 
             {
                 *reinterpret_cast<T_AUDIONETFRAME**>(slot->body) = ptAudioNetFrame; 
-                log_info(g_pLogHelper, "insert a new audio frame. identity:%d fid:%d ts:%d fidbegin:%d now:%lld", m_uiUserIdentity,  ptAudioNetFrame->tMediaInfo.frameId,
-                         ptAudioNetFrame->uiTimeStamp, m_fqAudioNetFrame.FrameIdBegin(), m_tickAlive); 
+                log_info(g_pLogHelper, "insert a new audio frame. identity:%d  ts:%d fid:%d fidbegin:%d(%d) now:%lld", m_uiUserIdentity, ptAudioNetFrame->uiTimeStamp, 
+                        ptAudioNetFrame->tMediaInfo.frameId, m_fqAudioNetFrame.FrameIdBegin(), m_fqAudioNetFrame.FrameCount(), m_tickAlive); 
             }
             else
             {
@@ -912,25 +956,37 @@ if(NULL==g_pfOutAAC)
         
         if(eSPSFrame==ptVideoNetFrame->tMediaInfo.video.nType)
         {
+            if(100<ptVideoNetFrame->uiDataLen)
+            {
+                log_info(g_pLogHelper, "the sps is too long");
+                assert(false);
+                return false;
+            }
             if(NULL!=m_pVideoNetSPSFrame)
                 ReleaseVideoNetFrame(m_pVideoNetSPSFrame);
             m_pVideoNetSPSFrame=ptVideoNetFrame;
-            log_info(g_pLogHelper, "video add sps frame. identity:%d fid:%d frmtype:%d fidbegin:%d", m_pVideoNetSPSFrame->uiIdentity,   
-                        m_pVideoNetSPSFrame->tMediaInfo.frameId, m_pVideoNetSPSFrame->tMediaInfo.video.nType, m_fqVideoNetFrame.FrameIdBegin());
+            log_info(g_pLogHelper, "insert video sps frame. identity:%d frmtype:%d fid:%d fidbegin:%d", m_pVideoNetSPSFrame->uiIdentity,   
+                     m_pVideoNetSPSFrame->tMediaInfo.video.nType,  m_pVideoNetSPSFrame->tMediaInfo.frameId, m_fqVideoNetFrame.FrameIdBegin());
             bRtn=true;
             return bRtn;
         }
         else if(ePPSFrame==ptVideoNetFrame->tMediaInfo.video.nType )
         {
+            if(100<ptVideoNetFrame->uiDataLen)
+            {
+                log_info(g_pLogHelper, "the pps is too long");
+                assert(false);
+                return false;
+            }
             if(NULL!=m_pVideoNetPPSFrame)
                 ReleaseVideoNetFrame(m_pVideoNetPPSFrame);
             m_pVideoNetPPSFrame=ptVideoNetFrame;
-            log_info(g_pLogHelper, "video add pps frame. identity:%d  fid:%d frmtype:%d fidbegin:%d", m_pVideoNetPPSFrame->uiIdentity, 
-                             m_pVideoNetPPSFrame->tMediaInfo.frameId, m_pVideoNetPPSFrame->tMediaInfo.video.nType, m_fqVideoNetFrame.FrameIdBegin());
+            log_info(g_pLogHelper, "insert video pps frame. identity:%d frmtype:%d  fid:%d fidbegin:%d", m_pVideoNetPPSFrame->uiIdentity, 
+                         m_pVideoNetPPSFrame->tMediaInfo.video.nType, m_pVideoNetPPSFrame->tMediaInfo.frameId, m_fqVideoNetFrame.FrameIdBegin());
             bRtn=true;
             return bRtn;
         }
-      
+     
         bool bIsNew=false;
         auto* slot=m_fqVideoNetFrame.Insert(ptVideoNetFrame->tMediaInfo.frameId, bIsNew, ReleaseVideoNetFrameCB, this);
         if(nullptr!=slot)
@@ -938,8 +994,8 @@ if(NULL==g_pfOutAAC)
            if(bIsNew) 
             {
                 *reinterpret_cast<T_VIDEONETFRAME**>(slot->body)=ptVideoNetFrame;
-                log_info(g_pLogHelper, "insert a new video frame successed. identity:%d fid:%d ts:%d fidbegin:%d", m_uiUserIdentity,  
-                        ptVideoNetFrame->tMediaInfo.frameId, ptVideoNetFrame->uiTimeStamp, m_fqVideoNetFrame.FrameIdBegin()); 
+                log_info(g_pLogHelper, "insert a new video frame successed. identity:%d ts:%d fid:%d fidbegin:%d(%d)", m_uiUserIdentity,  
+                       ptVideoNetFrame->uiTimeStamp, ptVideoNetFrame->tMediaInfo.frameId, m_fqVideoNetFrame.FrameIdBegin(), m_fqVideoNetFrame.FrameCount()); 
             }
             else
             {

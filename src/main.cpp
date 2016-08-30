@@ -132,7 +132,6 @@ int main(int argc, char** argv)
  
     if(!CCommonStruct::ReadConfig(argv[1]))
         return 0;
-    
  
     string strLogFile = g_confFile.strLogDir;
     strLogFile += "codecmix.log";

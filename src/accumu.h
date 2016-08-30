@@ -7,19 +7,25 @@ namespace cppcmn {
 
 	// used to detect if all src symbols get received
 	class IntAccumulator {
+        /*
+            NOTICE:
+            the raw src number start from 0, 
+            it will cause AddRange missing the case with one symbol segment starting with esi 0
+            So, we have to revise the src number starting from 1
+         */
 		uint32_t _accumu;
 		uint16_t _srcNum;
 		uint32_t _sum;
 		bool _met;
 
-		// 0, 1, 2, 3, 4
+		// [1, _srcNum + 1)
 		void GenAccumu() {
-			if ((_srcNum % 2) == 0) {
-				_accumu = (_srcNum - 1) * (_srcNum / 2);
-			}
-			else {
-				_accumu = (_srcNum / 2) * _srcNum;
-			}
+            if ((_srcNum % 2) == 0) {
+                _accumu = (_srcNum + 1) * (_srcNum / 2);
+            }
+            else {
+                _accumu = ((_srcNum + 1) / 2) * _srcNum;
+            }
 		}
 
 	public:
@@ -33,13 +39,13 @@ namespace cppcmn {
 		inline bool IsMet() const { return _met; }
 		inline uint16_t SrcNum() const { return _srcNum; }
 
-		// the range must not overlap src num 8  ... 6, 7, 8, 9
+		// the range must not overlap
 		inline bool AddRange(uint16_t begin, uint16_t cnt) {
 			if (_met) {
 				return true;
 			}
 
-			if (begin >= _srcNum) {
+			if (begin >= _srcNum || cnt == 0) {
 				return false;
 			}
 
@@ -48,8 +54,13 @@ namespace cppcmn {
 				end = _srcNum - 1;
 			}
 
+            cnt = end - begin + 1;
+            
+            // begin is starting from 0, but we calculate the range by revising it to start from 1
+            ++begin;
+            ++end;
+
 			uint32_t sum = 0;
-			cnt = end - begin + 1;
 			if ((cnt % 2) == 0) {
 				sum = (begin + end) * (cnt / 2);
 			}

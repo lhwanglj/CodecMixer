@@ -167,13 +167,15 @@ namespace hpsp {
             reginfo.delegate = delegate;
             reginfo.finished = false;
             reginfo.registered = true;
+
+            uint8_t cmdbuf[4 + sizeof(RegisterInfo*)];
+            *(RegisterInfo**)(cmdbuf + 4) = &reginfo;
+            _thread->SendCommand(CMD_ID_REGISTER, cmdbuf + 4, sizeof(RegisterInfo*));
             
-            RegisterInfo *pregInfo = &reginfo;
-            _thread->SendCommand(CMD_ID_REGISTER, &pregInfo, sizeof(RegisterInfo*));
             while(!reginfo.finished) {
                 sched_yield();
             }
-            LogDebug("stmass", "assembler registered, id %d, delegate %p\n", id, delegate);
+            LogDebug("stmassembler", "assembler registered, id %d, delegate %p\n", id, delegate);
         }
         
         void UnregisterAssembler(int id)
@@ -184,12 +186,14 @@ namespace hpsp {
             reginfo.finished = false;
             reginfo.registered = false;
             
-            RegisterInfo *preginfo = &reginfo;
-            _thread->SendCommand(CMD_ID_REGISTER, &preginfo, sizeof(RegisterInfo*));
+            uint8_t cmdbuf[4 + sizeof(RegisterInfo*)];
+            *(RegisterInfo**)(cmdbuf + 4) = &reginfo;
+            _thread->SendCommand(CMD_ID_REGISTER, cmdbuf + 4, sizeof(RegisterInfo*));
+            
             while(!reginfo.finished) {
                 sched_yield();
             }
-            LogDebug("stmass","assembler unregistered, id %d\n", id);
+            LogDebug("stmassembler", "assembler unregistered, id %d\n", id);
         }
         
         void HandleStream(int assemblerId, const uint8_t *data, int length, Tick tick)
@@ -207,16 +211,20 @@ namespace hpsp {
             stm->tick = tick;
             stm->length = length;
             memcpy(stm + 1, data, length);
-            _thread->SendCommand(CMD_ID_STREAM, &stm, sizeof(stm));
+            
+            uint8_t cmdbuf[4 + sizeof(StreamHeader*)];
+            *(StreamHeader**)(cmdbuf + 4) = stm;
+            _thread->SendCommand(CMD_ID_STREAM, cmdbuf + 4, sizeof(StreamHeader*));
         }
         
         void HandleDecodedResult(DecodingSegments *segments, bool suc)
         {
-            DecodedResultInfo result;
-            result.segments = segments;
-            result.suc = suc;
+            uint8_t cmdbuf[4 + sizeof(DecodedResultInfo)];
+            DecodedResultInfo *result = (DecodedResultInfo*)(cmdbuf + 4);
+            result->segments = segments;
+            result->suc = suc;
             
-            _thread->SendCommand(CMD_ID_DECODED, &result, sizeof(result));
+            _thread->SendCommand(CMD_ID_DECODED, cmdbuf + 4, sizeof(DecodedResultInfo));
         }
         
         virtual bool HandleMQThreadCommand(int cmd, const void *param, int paramlen, Tick tick) override
@@ -479,7 +487,9 @@ namespace hpsp {
         
         void RequestDecoding(DecodingSegments *segments)
         {
-            _thread->SendCommand(CMD_ID_DECODE, &segments, sizeof(segments));
+            uint8_t cmdbuf[4 + sizeof(DecodingSegments*)];
+            *(DecodingSegments**)(cmdbuf + 4) = segments;
+            _thread->SendCommand(CMD_ID_DECODE, cmdbuf + 4, sizeof(DecodingSegments*));
         }
     
         virtual bool HandleMQThreadCommand(int cmd, const void *param, int paramlen, Tick tick) override
@@ -560,7 +570,7 @@ namespace hpsp {
 
 
 using namespace hpsp;
-
+static int _globalAssmeblerId = 1;
 static bool _assemblerInited = false;
 static Mutex _assemblerInitLock;
 static StmRecverThread *_recverThread = nullptr;
@@ -602,7 +612,6 @@ static void InitializeStmThreads()
 }
 
 /// StmAssembler
-int _globalAssmeblerId = 1;
 StmAssembler::StmAssembler(IDelegate *delegate)
     : _delegate(delegate)
 {

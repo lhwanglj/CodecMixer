@@ -205,7 +205,7 @@ PosixThread::~PosixThread()
     
 }
 
-#define THREAD_JOINABLE
+//wljtest #define THREAD_JOINABLE
 bool PosixThread::Start()
 {
     int result = 0;

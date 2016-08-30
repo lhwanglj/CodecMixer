@@ -42,6 +42,8 @@ private:
         void ReleaseUserJoinMsg(PT_USERJOINMSG pUserJoinMsg);
         bool SendKeepalive();
         bool SendLogin();
+
+        void TestCode_InsertAUser();
     
     private:
         string m_strBizSvrIP;

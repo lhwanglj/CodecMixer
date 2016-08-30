@@ -180,6 +180,36 @@ namespace MediaCloud
             ReleaseUserJoinMsg(tUserJoinMsg);
         }
     }
+
+
+//wljtest+++++++++++++++++++++++++++++++++++++++++
+void CAVMBizsChannel::TestCode_InsertAUser()
+{
+    PT_USERJOINMSG tUserJoinMsg=new T_USERJOINMSG;
+    char szIdentity[16];
+        
+    string strSesin("123456789qazxswe");
+    memcpy(tUserJoinMsg->sessionID, strSesin.c_str(),16);
+    tUserJoinMsg->strConfig="session config";
+    tUserJoinMsg->uiTimeout=2;
+         
+    int iSize=1;
+    PT_CCNUSER pCCNUser=NULL;
+    char szTemp[32];
+    for(int i=1;i<=iSize;i++)
+    {
+        pCCNUser=new T_CCNUSER;
+        sprintf(szTemp, "USER_%d", i);
+        pCCNUser->strUserName = szTemp;
+        pCCNUser->uiIdentity = i;
+        tUserJoinMsg->lstUser.push_back(pCCNUser);
+    }
+
+    m_pAVMGridChannel->InsertUserJoinMsg(tUserJoinMsg);
+    ReleaseUserJoinMsg(tUserJoinMsg);
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     void* CAVMBizsChannel::BizsWorkThreadImp(void* param)
     {
         time_t tmNow;
@@ -196,7 +226,19 @@ namespace MediaCloud
         while(!m_bStopFlag)
         {
             tmNow = time((time_t*)NULL);
-      
+
+/*
+//wljtest+++++++++++++++++++++     
+static int iIndexTest=0;
+if(4<tmNow-tmPre)
+{
+    if(1990>iIndexTest++)
+        TestCode_InsertAUser();
+    tmPre=tmNow;
+}
+//+++++++++++++++++++++++++++++
+*/
+ 
             //send keep alive once per 20s
             SendKeepalive();
         

@@ -156,9 +156,13 @@ namespace MediaCloud
     bool CAVMMixer::CreateVideoEncoder(VideoCodec eType, const VideoCodecParam& vcp)
     {
         bool bRtn = false;
+        if(NULL!=m_pVideoEncoder)        
+            DestoryVideoEncoder();
+
         m_eVideoEncodeType = eType;
         m_VideoEncodeParam = vcp;
-    
+           
+ 
         m_pVideoEncoder = CreateVideoCodec(m_eVideoEncodeType, kEncoder); 
         if(NULL==m_pVideoEncoder)
         {
