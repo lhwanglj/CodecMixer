@@ -107,6 +107,12 @@ namespace MediaCloud
         char szIdentity[16];
         if(NULL==pExist)
         {
+            if(g_confFile.iCurRoom++>g_confFile.iMaxRoom)
+            {
+                log_err(g_pLogHelper, "create session failed. no empty room. sessionid:%s cur:%d, max:%d", 
+                    GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str(),  g_confFile.iCurRoom, g_confFile.iMaxRoom);
+                return -1;
+            }
 
             CAVMMixer* pMixer = new CAVMMixer();
             if(!pMixer->CreatePicConvert())
@@ -179,6 +185,7 @@ namespace MediaCloud
             pExist->StartProcessVideoThread();
             
             m_mapSession[pExist->GetSessionID()]=pExist;
+
             log_info(g_pLogHelper, (char*)"create new session map. sessid:%s", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str());
         }
         else
@@ -238,6 +245,7 @@ namespace MediaCloud
                 if(pSession->IsTimeout())
                 {
                     log_info(g_pLogHelper, "session timeout. destoried the session sid:%s ", pSession->GetSessionIDStr().c_str());
+                    g_confFile.iCurRoom--;
                     m_mapSession.erase(itr);
                     pSession->DestorySession();
                     delete pSession;

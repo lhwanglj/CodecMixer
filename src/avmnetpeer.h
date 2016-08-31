@@ -15,8 +15,12 @@
 #include "frmqueue.h"
 #include "clockex.h"
 
-#define AVM_MAX_AUDIO_FRAMEQUEUE_SIZE     50
-#define AVM_MAX_VIDEO_FRAMEQUEUE_SIZE     50
+#define AVM_MAX_AUDIO_FRAMEQUEUE_SIZE     90
+#define AVM_MAX_VIDEO_FRAMEQUEUE_SIZE     90
+
+#define AVM_MAX_AUDIO_WAIT_DEC_TIME       3
+#define AVM_MAX_VIDEO_WAIT_DEC_TIME       3
+
 
 using namespace std;
 using namespace MediaCloud::Public;

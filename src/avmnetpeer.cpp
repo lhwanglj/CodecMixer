@@ -283,15 +283,18 @@ namespace MediaCloud
                     //if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE >= cppcmn::FrameIdComparer::Distance(ptAudioNetFrame->tMediaInfo.frameId, m_usCurAudioNetFrameID) )
                    // if(AVM_MAX_AUDIO_FRAMEQUEUE_SIZE >= m_fqAudioNetFrame.FrameCount())
                     static time_t tmWaitNextAudioNetFrame=0;
-                    time_t tmNow = time(NULL);
-                    uint32_t uiSpace = tmNow-tmWaitNextAudioNetFrame;
-                    if(0==tmWaitNextAudioNetFrame || 2>uiSpace)
+                    if(cppcmn::FrameIdComparer::IsLater(m_usCurAudioNetFrameID+1, ptAudioNetFrame->tMediaInfo.frameId))
                     {
-                         if(0==tmWaitNextAudioNetFrame)
-                             tmWaitNextAudioNetFrame=tmNow;
-                         log_info(g_pLogHelper, "waiting next audio frame, identity:%d curfid:%d frmqueue_firstid:%d(%d)", m_uiUserIdentity, 
-                                        m_usCurAudioNetFrameID, ptAudioNetFrame->tMediaInfo.frameId, m_fqAudioNetFrame.FrameCount() );
-                         return FRAMEQUEUE_AUDIO::VisitorRes::Stop;
+                        time_t tmNow = time(NULL);
+                        uint32_t uiSpace = tmNow-tmWaitNextAudioNetFrame;
+                        if(0==tmWaitNextAudioNetFrame || AVM_MAX_AUDIO_WAIT_DEC_TIME>uiSpace)
+                        {
+                             if(0==tmWaitNextAudioNetFrame)
+                                 tmWaitNextAudioNetFrame=tmNow;
+                             log_info(g_pLogHelper, "waiting next audio frame, identity:%d curfid:%d frmqueue_firstid:%d(%d)", m_uiUserIdentity, 
+                                            m_usCurAudioNetFrameID, ptAudioNetFrame->tMediaInfo.frameId, m_fqAudioNetFrame.FrameCount() );
+                             return FRAMEQUEUE_AUDIO::VisitorRes::Stop;
+                        }
                     }
                    
                     tmWaitNextAudioNetFrame=0;
@@ -384,14 +387,17 @@ namespace MediaCloud
                     //if(AVM_MAX_VIDEO_FRAMEQUEUE_SIZE > m_fqVideoNetFrame.FrameCount())
                     //if(AVM_MAX_VIDEO_FRAMEQUEUE_SIZE > cppcmn::FrameIdComparer::Distance(pVideoNetFrame->tMediaInfo.frameId, m_usCurVideoNetFrameID))
                     static time_t tmWaitNextVideoNetFrame=0;
-                    time_t tmNow = time(NULL);
-                    uint32_t uiSpace = tmNow-tmWaitNextVideoNetFrame;
-                    if(0==tmWaitNextVideoNetFrame || 2>uiSpace)
+                    if(cppcmn::FrameIdComparer::IsLater(m_usCurVideoNetFrameID+1, pVideoNetFrame->tMediaInfo.frameId))
                     {
-                         if(0==tmWaitNextVideoNetFrame)
-                             tmWaitNextVideoNetFrame=tmNow;
-                        log_info(g_pLogHelper, "waiting next video frame, identity:%d fid:%d", m_uiUserIdentity, m_usCurVideoNetFrameID );
-                        return FRAMEQUEUE_VIDEO::VisitorRes::Stop;
+                        time_t tmNow = time(NULL);
+                        uint32_t uiSpace = tmNow-tmWaitNextVideoNetFrame;
+                        if(0==tmWaitNextVideoNetFrame || AVM_MAX_VIDEO_WAIT_DEC_TIME>uiSpace)
+                        {
+                             if(0==tmWaitNextVideoNetFrame)
+                                 tmWaitNextVideoNetFrame=tmNow;
+                            log_info(g_pLogHelper, "waiting next video frame, identity:%d fid:%d", m_uiUserIdentity, m_usCurVideoNetFrameID );
+                            return FRAMEQUEUE_VIDEO::VisitorRes::Stop;
+                        }
                     }
                     
                     tmWaitNextVideoNetFrame=0;
