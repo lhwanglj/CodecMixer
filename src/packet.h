@@ -6,11 +6,11 @@
 #include <vector>
 #include "userproto.h"
 #include "netendian.h"
-#include "clockex.h"
+#include "clock.h"
 
 /*
 quic packet format:
-| 3bit version | 5bit packtype | 8bit flags | identity (optional) | pn (2,4,8 bytes) | N slices |
+| 3bit version | 5bit packtype | 8bit flags | tick (optional) | identity (optional) | pn (2,4,8 bytes) | N slices |
 
 quic 8bit flags : 2bit for size of pn 2, 4, 8; 1bit for optional identity
 */
@@ -112,12 +112,17 @@ namespace hpsp {
                 return false;   // no identity after pn
             }
             
-            previewInfo.identity = cppcmn::byte_to_u32((uint8_t*)packet + 2);
+            previewInfo.hdrlen = 2;
+            
+            if (flag & (1 << 3)) {
+                previewInfo.hdrlen += 4;    // skip packet tick
+            }
+            
+            previewInfo.identity = cppcmn::byte_to_u32((uint8_t*)packet + previewInfo.hdrlen);
             if (previewInfo.identity == InvalidIdentity) {
                 return false;
             }
-            
-            previewInfo.hdrlen = 6;
+            previewInfo.hdrlen += 4;    // count the identity
 
             // get pn
             uint8_t pnBytes = 2 << (flag & 3);
@@ -126,13 +131,13 @@ namespace hpsp {
             }
 
             if (pnBytes == 2) {
-                previewInfo.pn = cppcmn::byte_to_u16((uint8_t*)packet + 6);
+                previewInfo.pn = cppcmn::byte_to_u16((uint8_t*)packet + previewInfo.hdrlen);
             }
             else if (pnBytes == 4) {
-                previewInfo.pn = cppcmn::byte_to_u32((uint8_t*)packet + 6);
+                previewInfo.pn = cppcmn::byte_to_u32((uint8_t*)packet + previewInfo.hdrlen);
             }
             else if (pnBytes == 8) {
-                previewInfo.pn = cppcmn::byte_to_u64((uint8_t*)packet + 6);
+                previewInfo.pn = cppcmn::byte_to_u64((uint8_t*)packet + previewInfo.hdrlen);
             }
 
             previewInfo.hdrlen += pnBytes;
