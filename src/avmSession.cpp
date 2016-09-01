@@ -6,8 +6,8 @@
 #include "clockex.h"
 #include "Log.h"
 
-#define AVM_LESS_AUDIO_DURATION_LEN      100
-#define AVM_LESS_VIDEO_DURATION_LEN      100
+#define AVM_LESS_AUDIO_DURATION_LEN      40
+#define AVM_LESS_VIDEO_DURATION_LEN      40
 #define AVM_LESS_MAX_AUDIO_PACKETS       1
 
 using namespace hpsp; 
@@ -236,7 +236,7 @@ namespace MediaCloud
         //send the encoded and mixed video to rtmpserver
         for(int ii=0;ii<velist.iSize;ii++)
         {
-            log_info(g_pLogHelper, "send video to rtmp index:%d sessionid:%s dataLen:%d->%d->%d fid:%d  ts:%d", ii, GetSessionIDStr().c_str(), pVideoNetFrameMain->uiDataLen,
+            log_info(g_pLogHelper, "send video to rtmp index:%d sessionid:%s dataLen:%d->%d->%d fid:%d  ts:%u", ii, GetSessionIDStr().c_str(), pVideoNetFrameMain->uiDataLen,
                      pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, velist.iPicData[ii].iDataLen , pVideoNetFrameMain->tMediaInfo.frameId,  frameDesc.iPts );
             SendVideo2Rtmp(velist.iPicData+ii, pVideoNetFrameMain);
 
@@ -439,7 +439,7 @@ namespace MediaCloud
         //m_pAVMMixer->GetAudioMediaInfo(audioMediaInfo);
         //audioMediaInfo.audio.nTimeStamp=uiTimeStamp;
    
-        log_info(g_pLogHelper, "send audio to rtmp server. sessionid:%s datalen:%d->%d->%d fid:%d ts:%d decdertn:%d", GetSessionIDStr().c_str(), 
+        log_info(g_pLogHelper, "send audio to rtmp server. sessionid:%s datalen:%d->%d->%d fid:%d ts:%u decdertn:%d", GetSessionIDStr().c_str(), 
                                                         pADFLeading->uiDataLen, uiMixDataSize, uiEncOutSize, pADFLeading->tMediaInfo.frameId, pADFLeading->uiTimeStamp, iRtn);
         m_pAVMMixer->SendData2RtmpServer(pEncOutData, uiEncOutSize, &audioMediaInfo);
 
@@ -591,7 +591,7 @@ namespace MediaCloud
         pthread_cancel(m_idProcessVideoThread);
     }
 
-
+/*
     void CAVMSession::ProcessDecAudio()
     {
         if(NULL==m_pLeadingPeer)
@@ -665,13 +665,155 @@ namespace MediaCloud
             lstAudioDecFrame.push_back(pAudioNetFrameTmp);
         }
         
-        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s identity:%d fid:%d leading_ts:%d", m_strSessionID.c_str(), 
+        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s identity:%d fid:%d leading_ts:%u", m_strSessionID.c_str(), 
                                  pAudioNetFrameLeading->uiIdentity, pAudioNetFrameLeading->tMediaInfo.frameId, pAudioNetFrameLeading->uiTimeStamp);
         MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
 
         //release audio net frame leading, and other minor's net frame release is in SetCurAudioDecFrame
         ReleaseAudioNetFrame(pAudioNetFrameLeading); 
     }
+*/
+    void CAVMSession::ProcessDecAudio()
+    {
+        if(NULL==m_pLeadingPeer)
+            return;
+
+        PT_AUDIONETFRAME pAudioNetFrameLeading = m_pLeadingPeer->GetFirstAudioDecFrame();    
+        if(NULL==pAudioNetFrameLeading)
+            return;
+    
+        CAVMNetPeer* pPeerTmp = NULL;
+        PT_AUDIONETFRAME pAudioNetFrameTmp=NULL;
+        bool bFoundAll=true;
+       
+        Tick tickPeer; 
+        int iWaitCnts=200;
+        
+        tickPeer=m_pLeadingPeer->GetAliveTick();
+        if(tickPeer>m_tickAlive)
+        {
+            m_tickAlive=tickPeer;
+            log_notice(g_pLogHelper, "session timeout set. sessionid:%s alive:%lld timeout:%d", GetSessionIDStr().c_str(), m_tickAlive, m_uiTimeout);
+        }
+
+        E_FRAMESTATUS eFrameStatus=E_FRAMESTATUS_UNKNOW;
+        LST_PT_AUDIONETFRAME lstAudioDecFrame;
+        while(1)
+        {
+            if(m_bStopProcessAudioThreadFlag)
+                pthread_exit(NULL); 
+            
+            bFoundAll=true;
+            for(int ii=0;ii<m_usPeerCount;ii++)
+            {
+                pPeerTmp=m_pPeers[ii];
+                
+                tickPeer=pPeerTmp->GetAliveTick();
+                if(tickPeer>m_tickAlive)
+                {
+                    m_tickAlive=tickPeer;
+                    log_notice(g_pLogHelper, "session timeout set. sessionid:%s alive:%lld timeout:%d", GetSessionIDStr().c_str(), m_tickAlive, m_uiTimeout);
+                }
+
+                eFrameStatus=E_FRAMESTATUS_UNKNOW;
+                pAudioNetFrameTmp=pPeerTmp->ExistTheSameAudioDecFrameAndPop(pAudioNetFrameLeading, eFrameStatus); 
+                if(NULL!=pAudioNetFrameTmp)
+                {
+                    pPeerTmp->SetCurAudioDecFrame(pAudioNetFrameTmp);
+                    lstAudioDecFrame.push_back(pAudioNetFrameTmp);
+                    continue;
+                }
+                else if(E_FRAMESTATUS_DROP==eFrameStatus)
+                     continue;     
+                bFoundAll=false;
+                break;
+            }
+            if(bFoundAll || iWaitCnts<=0)
+            //if(bFoundAll || m_pLeadingPeer->AudioDecQueueIsFull())
+                break;
+            iWaitCnts--;
+            usleep(20*1000);
+        }
+        
+        log_info(g_pLogHelper, "mix a audio frame. sessionid:%s identity:%d fid:%d leading_ts:%u minorcounts:%u", m_strSessionID.c_str(), 
+                                 pAudioNetFrameLeading->uiIdentity, pAudioNetFrameLeading->tMediaInfo.frameId, pAudioNetFrameLeading->uiTimeStamp, lstAudioDecFrame.size());
+        MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
+
+        //release audio net frame leading, and other minor's net frame release is in SetCurAudioDecFrame
+        ReleaseAudioNetFrame(pAudioNetFrameLeading); 
+    }
+
+    void CAVMSession::ProcessDecVideo()
+    {
+        if(NULL==m_pLeadingPeer)
+            return;
+
+        PT_VIDEONETFRAME pVideoNetFrameLeading = m_pLeadingPeer->GetFirstVideoDecFrame();
+        if(NULL==pVideoNetFrameLeading)
+            return;
+
+        CAVMNetPeer* pPeerTmp=NULL;
+        PT_VIDEONETFRAME pVideoNetFrameTmp=NULL;
+        bool bFoundAll=true;
+        int iWaitCnts=200;
+        E_FRAMESTATUS eFrameStatus=E_FRAMESTATUS_UNKNOW;
+       
+        LST_PT_VIDEONETFRAME lstVideoDecFrame;
+        lstVideoDecFrame.clear();
+        while(1)
+        {
+            if(m_bStopProcessVideoThreadFlag)
+                pthread_exit(NULL); 
+
+            bFoundAll=true;
+            for(int i=0;i<m_usPeerCount;i++)
+            {
+                eFrameStatus=E_FRAMESTATUS_UNKNOW;
+                pPeerTmp=m_pPeers[i];
+                pVideoNetFrameTmp=pPeerTmp->ExistTheSameVideoDecFrameAndPop(pVideoNetFrameLeading, eFrameStatus);
+                if(NULL!=pVideoNetFrameTmp)
+                {
+                    pPeerTmp->SetCurVideoDecFrame(pVideoNetFrameTmp);
+                    lstVideoDecFrame.push_back(pVideoNetFrameTmp);
+                    break;    //wlj only use one peer            
+                    //continue;            
+                }
+                else if(E_FRAMESTATUS_DROP==eFrameStatus)
+                {
+                    if(NULL!= pPeerTmp->GetCurVideoDecFrame())
+                        lstVideoDecFrame.push_back(pPeerTmp->GetCurVideoDecFrame());
+                    break;  //wlj only use one peer
+                    //continue;
+                }
+                
+                bFoundAll=false;
+                break;
+            }
+            if(bFoundAll || iWaitCnts<=0)
+            {
+                 break;
+            }
+
+            iWaitCnts--;
+            usleep(20*1000); 
+        }
+        if(!bFoundAll)
+        {
+            if(NULL!=pPeerTmp)
+            {
+                if(NULL!= pPeerTmp->GetCurVideoDecFrame())
+                    lstVideoDecFrame.push_back(pPeerTmp->GetCurVideoDecFrame());
+            }
+        }
+         
+        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%u fid:%d minorcounts:%u", m_strSessionID.c_str(), 
+                pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->tMediaInfo.frameId, lstVideoDecFrame.size() );
+
+        MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);
+        ReleaseVideoNetFrame(pVideoNetFrameLeading);
+    }
+
+/*
 
     void CAVMSession::ProcessDecVideo()
     {
@@ -728,11 +870,12 @@ namespace MediaCloud
             lstVideoDecFrame.push_back(pVideoNetFrameTmp);
         }
         
-        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%d fid:%d", m_strSessionID.c_str(), pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->tMediaInfo.frameId);
+        log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%u fid:%d", m_strSessionID.c_str(), pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->tMediaInfo.frameId);
         MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);
 
         ReleaseVideoNetFrame(pVideoNetFrameLeading);
     }
+*/
 
     void CAVMSession::SetConfig(string strConf)
     {
@@ -928,8 +1071,8 @@ if(eAudio==mInfo.nStreamType)
             pAudioNetFrame->uiTimeStamp=mInfo->audio.nTimeStamp;
             pAudioNetFrame->tMediaInfo=*mInfo;
                         
-            log_notice(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d duration:%d ts:%d len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
-                                                  mInfo->nStreamType, pAudioNetFrame->uiDuration,  pAudioNetFrame->uiTimeStamp,  nSize); 
+            log_notice(g_pLogHelper, "recv a audio frame identity:%d fid:%d stmtype:%d  ts:%u len:%d", pAudioNetFrame->uiIdentity, mInfo->frameId,
+                                                  mInfo->nStreamType, pAudioNetFrame->uiTimeStamp,  nSize); 
             pPeer->AddAudioData(pAudioNetFrame); 
         }
         else if(eVideo==mInfo->nStreamType)
@@ -973,8 +1116,8 @@ if(eAudio==mInfo.nStreamType)
            pVideoNetFrame->usFrameIndex=mInfo->frameId;
            pVideoNetFrame->tMediaInfo=*mInfo;
             
-           log_notice(g_pLogHelper, "recv a video frame identity:%d fid:%d frmtype:%d stmtype:%d duration:%d ts:%d len:%d DataPtr:%x", pVideoNetFrame->uiIdentity, mInfo->frameId,mInfo->video.nType,
-                                                  mInfo->nStreamType, pVideoNetFrame->uiDuration,  pVideoNetFrame->uiTimeStamp,  nSize, pVideoNetFrame->pData); 
+           log_notice(g_pLogHelper, "recv a video frame identity:%d fid:%d frmtype:%d stmtype:%d ts:%u len:%d DataPtr:%x", pVideoNetFrame->uiIdentity, mInfo->frameId,mInfo->video.nType,
+                                                  mInfo->nStreamType,  pVideoNetFrame->uiTimeStamp,  nSize, pVideoNetFrame->pData); 
            pPeer->AddVideoData(pVideoNetFrame);                               
        }
     }

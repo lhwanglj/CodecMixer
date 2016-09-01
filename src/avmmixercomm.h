@@ -3,7 +3,7 @@
 
 
 #define AVM_MAX_URL_LENGTH     1024
-#define AVM_MAX_NETPEER_SIZE   4
+#define AVM_MAX_NETPEER_SIZE   1
 
 
 namespace MediaCloud

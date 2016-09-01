@@ -212,8 +212,8 @@ namespace MediaCloud
                         CAVMNetPeer* pPeer=new CAVMNetPeer();
                         pPeer->SetUserName(pUser->strUserName);
                         pPeer->SetUserIdentity(pUser->uiIdentity);
-                        pExist->SetLeadingPeer(pPeer);
                         pPeer->InitNP();
+                        pExist->SetLeadingPeer(pPeer);
                         log_info(g_pLogHelper, (char*)"add leading peer to session. sessid:%s identity:%d ", GUIDToString(*((T_GUID*)pExist->GetSessionID())).c_str(), pUser->uiIdentity);
                         pPeer->StartAudioDecThread();
                         pPeer->StartVideoDecThread();

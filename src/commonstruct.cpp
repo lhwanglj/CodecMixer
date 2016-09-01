@@ -67,7 +67,28 @@ int AdjustPicStride(unsigned char* pDst, unsigned char* pSrc, int iWidth, int iH
     }
     return iSrcDataSize;
 }
+bool TSIsSame(uint32_t first, uint32_t second, uint32_t adjust)
+{
+    bool bRtn=false;
+    uint32_t uiSpace;
+    if(first > second)
+        uiSpace=first-second;
+    else
+        uiSpace=second-first;
+         
+    if(uiSpace<=adjust)
+        bRtn=true;
+    return bRtn;
+}
+bool TSIsEarlier(uint32_t earlier, uint32_t later, uint32_t adjust) 
+{
+    return !TSIsSame(later,earlier, adjust) && static_cast<uint32_t>(later - earlier) < 0x80000000u;
+}
 
+bool TSIsLater(uint32_t later, uint32_t prev, uint32_t adjust) 
+{
+    return !TSIsSame(later, prev, adjust) && static_cast<uint32_t>(later - prev) < 0x80000000u;
+}
 
 bool CCommonStruct::ReadConfig(const char* acpszConfigFilePath)
 {

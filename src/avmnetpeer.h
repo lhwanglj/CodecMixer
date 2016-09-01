@@ -31,6 +31,14 @@ using namespace cppcmn;
 
 namespace MediaCloud
 {
+    typedef enum e_FrameStatus
+    {
+        E_FRAMESTATUS_UNKNOW,
+        E_FRAMESTATUS_DROP,
+        E_FRAMESTATUS_EXIST,
+        E_FRAMESTATUS_LATE,
+    }E_FRAMESTATUS;
+
     typedef enum e_AVParamType
     {
         E_AVPARAMTYPE_UNKNOW,
@@ -284,6 +292,9 @@ namespace MediaCloud
         PT_VIDEONETFRAME ExistTheSameVideoDecFrame(PT_VIDEONETFRAME pVideoNetFrame);
         PT_VIDEONETFRAME ExistTheSameVideoDecFrameAndPop(PT_VIDEONETFRAME pVideoNetFrame);
         bool RemoveVideoDecFrame(PT_VIDEONETFRAME pVideoNetFrame);
+        
+        PT_VIDEONETFRAME ExistTheSameVideoDecFrameAndPop(PT_VIDEONETFRAME pVideoNetFrame, E_FRAMESTATUS& eFrameStatus);
+        PT_AUDIONETFRAME ExistTheSameAudioDecFrameAndPop(PT_AUDIONETFRAME pAudioNetFrameLeading, E_FRAMESTATUS& eFrameStatus); 
 
  
         void SetCurAudioDecFrame(PT_AUDIONETFRAME pAudioDecFrame);

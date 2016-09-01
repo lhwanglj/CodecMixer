@@ -47,6 +47,10 @@ using namespace MediaCloud;
 #define AVM_AUDIO_ENCODE_BITSPERSAMPLE  16
 #define AVM_AUDIO_ENCODE_CHANNELS       2
 
+#define AVM_AUDIO_DURATION       40
+#define AVM_VIDEO_DURATION       40
+
+
 #pragma pack(1)
 typedef struct _tGuid
 {
@@ -73,6 +77,10 @@ typedef struct _tGuid
 
 string GUIDToString(T_GUID guid);
 int AdjustPicStride(unsigned char* pDst, unsigned char* pSrc, int iWidth, int iHeight, int iStrideY, int iStrideUV);
+
+bool TSIsSame(uint32_t first, uint32_t second, uint32_t adjust);
+bool TSIsEarlier(uint32_t earlier, uint32_t later, uint32_t adjust); 
+bool TSIsLater(uint32_t later, uint32_t prev, uint32_t adjust);
 
 typedef struct t_ServerAddr
 {
