@@ -526,9 +526,90 @@ namespace MediaCloud
 
     void* CAVMSession::ProcessAudioThreadImp()
     {
-        while(!m_bStopProcessAudioThreadFlag)
+     /*   while(!m_bStopProcessAudioThreadFlag)
         {
             ProcessDecAudio();
+            usleep(5*1000);
+        }
+     */
+        
+        PT_AUDIONETFRAME pAudioNetFrameLeading=NULL;
+        bool bFoundAll=false;
+        time_t tmNow=0;
+        time_t tmPre=0;
+        Tick tickPeer; 
+        CAVMNetPeer* pPeerTmp = NULL;
+
+        LST_PT_AUDIONETFRAME lstAudioDecFrame;
+        PT_AUDIONETFRAME pAudioNetFrameTmp=NULL;
+        while(!m_bStopProcessAudioThreadFlag)
+        {
+            if(NULL==m_pLeadingPeer)
+            {
+                usleep(5*1000);
+                continue;
+            }
+            pAudioNetFrameLeading=m_pLeadingPeer->GetFirstAudioDecFrame();    
+            if(NULL==pAudioNetFrameLeading)
+            {
+                usleep(1*1000);
+                continue;
+            }
+
+            tickPeer=m_pLeadingPeer->GetAliveTick();
+            if(tickPeer>m_tickAlive)
+            {
+                m_tickAlive=tickPeer;
+                log_notice(g_pLogHelper, "session timeout set. sessionid:%s alive:%lld timeout:%d", GetSessionIDStr().c_str(), m_tickAlive, m_uiTimeout);
+            }
+
+            for(int i=0;i<m_usPeerCount;i++)
+            {
+                pPeerTmp=m_pPeers[i];
+                if(NULL!=pPeerTmp)
+                    pPeerTmp->SetCurAudioDecFrameStatus(E_FRAMESTATUS_UNKNOW);
+            }
+ 
+            bFoundAll=false;
+            tmPre=time(NULL);
+            do
+            {
+                if(m_bStopProcessAudioThreadFlag)
+                    pthread_exit(NULL); 
+                
+                bFoundAll=FilterDecAudioMinor(pAudioNetFrameLeading);
+                if(bFoundAll)
+                    break;
+
+                tmNow = time(NULL);
+                if(2>=tmNow-tmPre)
+                {
+                    usleep(20*1000);
+                }
+                else
+                    break;
+                
+            }while(!bFoundAll);
+
+            lstAudioDecFrame.clear();
+            for(int i=0;i<m_usPeerCount;i++)
+            {
+                pPeerTmp=m_pPeers[i];
+                if(NULL!=pPeerTmp)
+                {
+                    if(E_FRAMESTATUS_EXIST==pPeerTmp->GetCurAudioDecFrameStatus())
+                    {
+                        pAudioNetFrameTmp=pPeerTmp->GetCurAudioDecFrame();
+                        lstAudioDecFrame.push_back(pAudioNetFrameTmp);                        
+                    }
+                    pPeerTmp->SetCurAudioDecFrameStatus(E_FRAMESTATUS_UNKNOW);
+                }
+            }
+        
+            log_info(g_pLogHelper, "mix a audio frame. sessionid:%s identity:%d fid:%d leading_ts:%u minorcounts:%u", m_strSessionID.c_str(), 
+                                 pAudioNetFrameLeading->uiIdentity, pAudioNetFrameLeading->tMediaInfo.frameId, pAudioNetFrameLeading->uiTimeStamp, lstAudioDecFrame.size());
+            MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
+            ReleaseAudioNetFrame(pAudioNetFrameLeading); 
             usleep(5*1000);
         }
         return NULL;
@@ -563,9 +644,88 @@ namespace MediaCloud
 
     void* CAVMSession::ProcessVideoThreadImp()
     {
-        while(!m_bStopProcessVideoThreadFlag)
+    /*    while(!m_bStopProcessVideoThreadFlag)
         {
             ProcessDecVideo();
+            usleep(5*1000);
+        }
+*/
+
+        PT_VIDEONETFRAME pVideoNetFrameLeading = NULL;
+        bool bFoundAll=false;
+        time_t tmNow=0;
+        time_t tmPre=0;
+        Tick tickPeer;
+        CAVMNetPeer* pPeerTmp=NULL;
+        PT_VIDEONETFRAME pVideoNetFrameTmp=NULL;
+        LST_PT_VIDEONETFRAME lstVideoDecFrame;
+
+        while(!m_bStopProcessVideoThreadFlag)
+        {
+            if(NULL==m_pLeadingPeer)
+            {
+                usleep(5*1000);
+                continue;
+            }
+            pVideoNetFrameLeading = m_pLeadingPeer->GetFirstVideoDecFrame();
+            if(NULL==pVideoNetFrameLeading)
+            {
+                usleep(1*1000);
+                continue;
+            }
+
+            for(int i=0;i<m_usPeerCount;i++)
+            {
+                pPeerTmp=m_pPeers[i];
+                if(NULL!=pPeerTmp)
+                {
+                    pPeerTmp->SetCurVideoDecFrameStatus(E_FRAMESTATUS_UNKNOW);
+                }
+            }
+ 
+            bFoundAll=false;
+            tmPre=time(NULL);
+            do
+            {
+                if(m_bStopProcessVideoThreadFlag)
+                    pthread_exit(NULL);
+
+                bFoundAll=FilterDecVideoMinor(pVideoNetFrameLeading);
+                if(bFoundAll)
+                    break;
+                   
+                tmNow=time(NULL);
+                if(2>=tmNow-tmPre)
+                {
+                    usleep(20*1000);
+                }
+                else
+                    break;
+                
+            }while(!bFoundAll);
+            
+
+            lstVideoDecFrame.clear();
+            for(int i=0;i<m_usPeerCount;i++)
+            {
+                pPeerTmp=m_pPeers[i];
+                if(NULL!=pPeerTmp)
+                {
+                    pVideoNetFrameTmp = pPeerTmp->GetCurVideoDecFrame();
+                    if(NULL!=pVideoNetFrameTmp)
+                    {
+                        lstVideoDecFrame.push_back(pVideoNetFrameTmp);
+                        pPeerTmp->SetCurVideoDecFrameStatus(E_FRAMESTATUS_UNKNOW);
+                    }
+                }
+            }
+            
+            log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%u fid:%d minorcounts:%u", m_strSessionID.c_str(), 
+                pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->tMediaInfo.frameId, lstVideoDecFrame.size() );
+
+            MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);
+            ReleaseVideoNetFrame(pVideoNetFrameLeading);
+
             usleep(5*1000);
         }
 
@@ -673,6 +833,45 @@ namespace MediaCloud
         ReleaseAudioNetFrame(pAudioNetFrameLeading); 
     }
 */
+
+bool  CAVMSession::FilterDecAudioMinor(PT_AUDIONETFRAME padfLeading)
+{
+    bool bFinished=true;
+    CAVMNetPeer* pPeerTmp = NULL;
+    Tick tickPeer; 
+    E_FRAMESTATUS eFrameStatus=E_FRAMESTATUS_UNKNOW;
+    PT_AUDIONETFRAME pAudioNetFrameTmp=NULL;
+    for(int ii=0;ii<m_usPeerCount;ii++)
+    {
+        pPeerTmp=m_pPeers[ii]; 
+         
+        tickPeer=pPeerTmp->GetAliveTick();
+        if(tickPeer>m_tickAlive)
+        {
+            m_tickAlive=tickPeer;
+            log_notice(g_pLogHelper, "session timeout set. sessionid:%s alive:%lld timeout:%d", GetSessionIDStr().c_str(), m_tickAlive, m_uiTimeout);
+        }
+        if(E_FRAMESTATUS_DROP==pPeerTmp->GetCurAudioDecFrameStatus() || E_FRAMESTATUS_EXIST==pPeerTmp->GetCurAudioDecFrameStatus())
+            continue;
+
+        eFrameStatus=E_FRAMESTATUS_UNKNOW;
+        pAudioNetFrameTmp=pPeerTmp->ExistTheSameAudioDecFrameAndPop(padfLeading, eFrameStatus); 
+        if(NULL!=pAudioNetFrameTmp)
+        {
+            pPeerTmp->SetCurAudioDecFrame(pAudioNetFrameTmp);
+            continue;
+        }
+        else if(E_FRAMESTATUS_DROP==eFrameStatus)
+        {
+            pPeerTmp->SetCurAudioDecFrameStatus(E_FRAMESTATUS_DROP);
+            continue;     
+        }
+        bFinished=false;
+    }
+
+    return bFinished;
+}
+
     void CAVMSession::ProcessDecAudio()
     {
         if(NULL==m_pLeadingPeer)
@@ -741,6 +940,43 @@ namespace MediaCloud
 
         //release audio net frame leading, and other minor's net frame release is in SetCurAudioDecFrame
         ReleaseAudioNetFrame(pAudioNetFrameLeading); 
+    }
+
+    bool CAVMSession::FilterDecVideoMinor(PT_VIDEONETFRAME padfLeading)
+    {
+        bool bFinished=true;
+        CAVMNetPeer* pPeerTmp = NULL;
+        Tick tickPeer; 
+        E_FRAMESTATUS eFrameStatus=E_FRAMESTATUS_UNKNOW;
+        PT_VIDEONETFRAME pVideoNetFrameTmp=NULL;
+        for(int ii=0;ii<m_usPeerCount;ii++)
+        {
+            pPeerTmp=m_pPeers[ii]; 
+         
+            tickPeer=pPeerTmp->GetAliveTick();
+            if(tickPeer>m_tickAlive)
+            {
+                m_tickAlive=tickPeer;
+                log_notice(g_pLogHelper, "session timeout set. sessionid:%s alive:%lld timeout:%d", GetSessionIDStr().c_str(), m_tickAlive, m_uiTimeout);
+            }
+            if(E_FRAMESTATUS_DROP==pPeerTmp->GetCurVideoDecFrameStatus() || E_FRAMESTATUS_EXIST==pPeerTmp->GetCurVideoDecFrameStatus())
+                continue;
+
+            eFrameStatus=E_FRAMESTATUS_UNKNOW;
+            pVideoNetFrameTmp=pPeerTmp->ExistTheSameVideoDecFrameAndPop(padfLeading, eFrameStatus); 
+            if(NULL!=pVideoNetFrameTmp)
+            {
+                pPeerTmp->SetCurVideoDecFrame(pVideoNetFrameTmp);
+                continue;
+            }
+            else if(E_FRAMESTATUS_DROP==eFrameStatus)
+            {
+                pPeerTmp->SetCurVideoDecFrameStatus(E_FRAMESTATUS_DROP);
+                continue;     
+            }
+            bFinished=false;
+        }
+        return bFinished;
     }
 
     void CAVMSession::ProcessDecVideo()

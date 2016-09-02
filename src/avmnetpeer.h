@@ -107,8 +107,14 @@ namespace MediaCloud
         }
     }T_VIDEOPARAM, *PT_VIDEOPARAM;
 
-    typedef struct t_AudioNetFrame
+    typedef struct t_FrameSlot
     {
+        E_FRAMESTATUS eStatus;
+        void* pFrame;
+    }T_FRAMESLOT, *PT_FRAMESLOT;
+
+    typedef struct t_AudioNetFrame
+    { 
         void* pData;             //the data from hpsp
         uint32_t uiDataLen;
         void* pDecData;          //decode data1
@@ -298,9 +304,13 @@ namespace MediaCloud
 
  
         void SetCurAudioDecFrame(PT_AUDIONETFRAME pAudioDecFrame);
+        void SetCurAudioDecFrameStatus(E_FRAMESTATUS eStatus);
+        E_FRAMESTATUS GetCurAudioDecFrameStatus();
         PT_AUDIONETFRAME GetCurAudioDecFrame();
 
         void SetCurVideoDecFrame(PT_VIDEONETFRAME pVideoDecFrame);
+        void SetCurVideoDecFrameStatus(E_FRAMESTATUS eStatus);
+        E_FRAMESTATUS GetCurVideoDecFrameStatus();
         PT_VIDEONETFRAME GetCurVideoDecFrame();
 
         bool SetUserName(string strUserName);
@@ -323,7 +333,10 @@ namespace MediaCloud
         CriticalSection*   m_csAudioNetFrame;
         CriticalSection*   m_csVideoNetFrame;
 
+        E_FRAMESTATUS      m_eCurAudioDecFrameStatus;
         PT_AUDIONETFRAME   m_pCurAudioDecFrame;
+        
+        E_FRAMESTATUS      m_eCurVideoDecFrameStatus;
         PT_VIDEONETFRAME   m_pCurVideoDecFrame;
         //PT_AUDIONETFRAME   m_pCurAudioNetFrame;
         uint16_t           m_usCurAudioNetFrameID;

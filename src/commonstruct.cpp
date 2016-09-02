@@ -70,6 +70,9 @@ int AdjustPicStride(unsigned char* pDst, unsigned char* pSrc, int iWidth, int iH
 bool TSIsSame(uint32_t first, uint32_t second, uint32_t adjust)
 {
     bool bRtn=false;
+    if(adjust>=first-second||adjust>=second-first)
+        bRtn=true;
+/*
     uint32_t uiSpace;
     if(first > second)
         uiSpace=first-second;
@@ -78,6 +81,7 @@ bool TSIsSame(uint32_t first, uint32_t second, uint32_t adjust)
          
     if(uiSpace<=adjust)
         bRtn=true;
+*/
     return bRtn;
 }
 bool TSIsEarlier(uint32_t earlier, uint32_t later, uint32_t adjust) 

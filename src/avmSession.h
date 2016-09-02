@@ -86,7 +86,9 @@ namespace MediaCloud
 
         bool SendVideo2Rtmp(VideoEncodedData * pVEData, PT_VIDEONETFRAME pVideoNetFrame); 
         void ProcessDecAudio();
+        bool FilterDecAudioMinor(PT_AUDIONETFRAME padfLeading);
         void ProcessDecVideo();
+        bool FilterDecVideoMinor(PT_VIDEONETFRAME padfLeading);
         
         void* ProcessAudioThreadImp();
         bool StartProcessAudioThread();

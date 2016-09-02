@@ -31,6 +31,9 @@ namespace MediaCloud
                                 , m_csVideoDecFrame(NULL)
                                 , m_pVideoNetSPSFrame(NULL)
                                 , m_pVideoNetPPSFrame(NULL)
+                                , m_eCurAudioDecFrameStatus(E_FRAMESTATUS_UNKNOW)
+                                , m_eCurVideoDecFrameStatus(E_FRAMESTATUS_UNKNOW)
+
     {
         m_tickAlive=cppcmn::TickToSeconds(cppcmn::NowEx());
     }
@@ -1348,7 +1351,7 @@ if(NULL==g_pfOutAAC)
 
         if(TSIsEarlier(pVideoNetFrame->uiTimeStamp, uiBeginTS, AVM_VIDEO_DURATION))
         {
-            log_info(g_pLogHelper, "find exist video failed. is earlier. begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u fid:%d", uiBeginTS, uiBeginFID,
+            log_info(g_pLogHelper, "find exist video failed. is earlier. begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u", uiBeginTS, uiBeginFID,
                       pVideoNetFrame->uiTimeStamp, pVideoNetFrame->tMediaInfo.frameId,  uiEndTS, uiEndFID, uiSize);
             eFrameStatus=E_FRAMESTATUS_DROP;
             return NULL;
@@ -1357,7 +1360,7 @@ if(NULL==g_pfOutAAC)
                 
         if(TSIsLater(pVideoNetFrame->uiTimeStamp, uiEndTS, AVM_VIDEO_DURATION))
         {
-            log_info(g_pLogHelper, "find exist video failed. is later  . begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u fid:%d", uiBeginTS, uiBeginFID,
+            log_info(g_pLogHelper, "find exist video failed. is later  . begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u", uiBeginTS, uiBeginFID,
                       pVideoNetFrame->uiTimeStamp, pVideoNetFrame->tMediaInfo.frameId,  uiEndTS, uiEndFID, uiSize);
             eFrameStatus=E_FRAMESTATUS_LATE;
             return NULL;
@@ -1366,13 +1369,13 @@ if(NULL==g_pfOutAAC)
         pDecFrame = ExistTheSameVideoDecFrameAndPop(pVideoNetFrame);
         if(NULL==pDecFrame)
         {
-            log_info(g_pLogHelper, "find exist video failed. not arrive. begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u fid:%d", uiBeginTS, uiBeginFID,
+            log_info(g_pLogHelper, "find exist video failed. not arrive. begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u", uiBeginTS, uiBeginFID,
                       pVideoNetFrame->uiTimeStamp, pVideoNetFrame->tMediaInfo.frameId,  uiEndTS, uiEndFID, uiSize);
             eFrameStatus=E_FRAMESTATUS_LATE;
         }
         else
         {
-            log_info(g_pLogHelper, "find exist video success. begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u fid:%d", uiBeginTS, uiBeginFID,
+            log_info(g_pLogHelper, "find exist video success. begints:%u(%u), ts:%u(%u) endts:%u(%u) size:%u", uiBeginTS, uiBeginFID,
                       pVideoNetFrame->uiTimeStamp, pVideoNetFrame->tMediaInfo.frameId,  uiEndTS, uiEndFID, uiSize);
             eFrameStatus=E_FRAMESTATUS_EXIST;
         }
@@ -1389,13 +1392,27 @@ if(NULL==g_pfOutAAC)
 
     void CAVMNetPeer::SetCurAudioDecFrame(PT_AUDIONETFRAME pAudioDecFrame)
     {
-        if(m_pCurAudioDecFrame==pAudioDecFrame||NULL==pAudioDecFrame)
+        if(NULL==pAudioDecFrame)
+            return;
+
+        m_eCurAudioDecFrameStatus=E_FRAMESTATUS_EXIST;
+        if(m_pCurAudioDecFrame==pAudioDecFrame)
             return;
 
         if(NULL!=m_pCurAudioDecFrame)
             ReleaseAudioNetFrame(m_pCurAudioDecFrame);
 
         m_pCurAudioDecFrame=pAudioDecFrame;    
+    }
+
+    void CAVMNetPeer::SetCurAudioDecFrameStatus(E_FRAMESTATUS eStatus)
+    {
+        m_eCurAudioDecFrameStatus = eStatus;
+    }
+
+    E_FRAMESTATUS CAVMNetPeer::GetCurAudioDecFrameStatus()
+    {
+        return m_eCurAudioDecFrameStatus;
     }
 
     PT_AUDIONETFRAME CAVMNetPeer::GetCurAudioDecFrame()
@@ -1405,13 +1422,27 @@ if(NULL==g_pfOutAAC)
 
     void CAVMNetPeer::SetCurVideoDecFrame(PT_VIDEONETFRAME pVideoDecFrame)
     {
-        if(m_pCurVideoDecFrame==pVideoDecFrame ||NULL==pVideoDecFrame)
+        if(NULL==pVideoDecFrame)
+            return;
+
+        m_eCurVideoDecFrameStatus=E_FRAMESTATUS_EXIST;
+        if(m_pCurVideoDecFrame==pVideoDecFrame)
             return;
 
         if(NULL!=m_pCurVideoDecFrame)
             ReleaseVideoNetFrame(m_pCurVideoDecFrame);
             
         m_pCurVideoDecFrame=pVideoDecFrame;
+    }
+
+    void CAVMNetPeer::SetCurVideoDecFrameStatus(E_FRAMESTATUS eStatus)
+    {
+        m_eCurVideoDecFrameStatus=eStatus;
+    }
+
+    E_FRAMESTATUS CAVMNetPeer::GetCurVideoDecFrameStatus()
+    {
+        return m_eCurVideoDecFrameStatus;
     }
 
     PT_VIDEONETFRAME CAVMNetPeer::GetCurVideoDecFrame()
