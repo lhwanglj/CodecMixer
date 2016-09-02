@@ -237,7 +237,7 @@ namespace MediaCloud
         {
             PT_AUDIONETFRAME ptAudioNetFrame = *reinterpret_cast<T_AUDIONETFRAME**>(pSlot->body);
 
-            //decode the first audio net frame
+               //decode the first audio net frame
             if(0==m_usCurAudioNetFrameID)
             {
                 if(DecAudioNetFrame(ptAudioNetFrame))
@@ -299,7 +299,12 @@ namespace MediaCloud
                              return FRAMEQUEUE_AUDIO::VisitorRes::Stop;
                         }
                     }
-                   
+                    else if(cppcmn::FrameIdComparer::IsEarlier(ptAudioNetFrame->tMediaInfo.frameId , m_usCurAudioNetFrameID))
+                    {
+                        ReleaseAudioNetFrame(ptAudioNetFrame); 
+                        return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
+                    }
+
                     tmWaitNextAudioNetFrame=0;
                     m_usCurAudioNetFrameID=0; 
                     //wait a long time direct decode the next audio net frame
@@ -307,12 +312,14 @@ namespace MediaCloud
                     {
                         InsertAudioDecFrame(ptAudioNetFrame);
                         m_usCurAudioNetFrameID=ptAudioNetFrame->tMediaInfo.frameId;
-                        log_notice(g_pLogHelper, "wait too longer decode next audio frame, identity:%d curfid:%d ", m_uiUserIdentity, m_usCurAudioNetFrameID);                        
+                        log_notice(g_pLogHelper, "wait too longer decode next audio frame, identity:%d curfid:%d frmqueue_firstid:%d(%d) ", m_uiUserIdentity,
+                             m_usCurAudioNetFrameID, ptAudioNetFrame->tMediaInfo.frameId, m_fqAudioNetFrame.FrameCount());                        
                     }
                     else
                     {
                         m_usCurAudioNetFrameID=ptAudioNetFrame->tMediaInfo.frameId;
-                        log_err(g_pLogHelper, "wait too longer decode next audio frame failed, identity:%d curfid:%d ", m_uiUserIdentity, m_usCurAudioNetFrameID);                        
+                        log_err(g_pLogHelper, "wait too longer decode next audio frame failed, identity:%d curfid:%d frmqueue_firstid:%d(%d)  ", m_uiUserIdentity,
+                             m_usCurAudioNetFrameID, ptAudioNetFrame->tMediaInfo.frameId, m_fqAudioNetFrame.FrameCount());                        
                         ReleaseAudioNetFrame(ptAudioNetFrame); 
                     }
                     return FRAMEQUEUE_AUDIO::VisitorRes::DeletedContinue;  
@@ -894,7 +901,7 @@ if(NULL==g_pfOutAAC)
             if(bIsNew)
             {
                 *reinterpret_cast<T_AUDIONETFRAME**>(slot->body)=pAudioNetFrame;
-                log_info(g_pLogHelper, "insert audio to dec queue success. identity:%d fid:%d ts:%d begfid:%d(%d)", m_uiUserIdentity, pAudioNetFrame->tMediaInfo.frameId, 
+                log_info(g_pLogHelper, "insert audio to dec queue success. identity:%d fid:%d ts:%u begfid:%d(%d)", m_uiUserIdentity, pAudioNetFrame->tMediaInfo.frameId, 
                     pAudioNetFrame->uiTimeStamp, m_fqAudioDecFrame.FrameIdBegin(), m_fqAudioDecFrame.FrameCount());
             }
             else
@@ -927,7 +934,7 @@ if(NULL==g_pfOutAAC)
             if(bIsNew)
             {
                 *reinterpret_cast<T_VIDEONETFRAME**>(slot->body)=pVideoNetFrame;
-                log_info(g_pLogHelper, "insert video to dec queue success identity:%d  fid:%d ts:%d  begfid:%d(%d)", m_uiUserIdentity, pVideoNetFrame->tMediaInfo.frameId, 
+                log_info(g_pLogHelper, "insert video to dec queue success identity:%d  fid:%d ts:%u  begfid:%d(%d)", m_uiUserIdentity, pVideoNetFrame->tMediaInfo.frameId, 
                        pVideoNetFrame->uiTimeStamp, m_fqVideoDecFrame.FrameIdBegin(), m_fqVideoDecFrame.FrameCount());
             }
             else

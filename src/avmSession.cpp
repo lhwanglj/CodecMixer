@@ -208,8 +208,8 @@ namespace MediaCloud
         FrameDesc frameDesc;
         frameDesc.iFrameType.h264 = kVideoUnknowFrame;
         frameDesc.iPreFramesMiss = false;
-        frameDesc.iPts           = pVideoNetFrameMain->tMediaInfo.frameId*1000/25;
-        //frameDesc.iPts           = pVideoNetFrameMain->uiTimeStamp;
+        //frameDesc.iPts           = pVideoNetFrameMain->tMediaInfo.frameId*1000/25;
+        frameDesc.iPts           = pVideoNetFrameMain->uiTimeStamp;
         
         m_pAVMMixer->EncodeVideoData((unsigned char*)pVideoNetFrameMain->tPicDecInfo.pPlaneData, pVideoNetFrameMain->tPicDecInfo.iPlaneDataPos, &frameDesc,&velist);
        
@@ -271,7 +271,6 @@ namespace MediaCloud
             pAudioDataInfo[iIndex]._leftData   = (uint8_t*)pAudioNetFrame->pDecData;
             pAudioDataInfo[iIndex]._enabled    = true;
          //   iPackNums=pAudioNetFrame->uiDecDataPos/iPacketLen;
-           
 
             iIndex++;
             itrAudioFrame++;
@@ -408,12 +407,22 @@ namespace MediaCloud
         uiTimeStamp = pADFLeading->uiTimeStamp;
 
         //add the leading peer to the list
-        lstADFMinor.push_back(pADFLeading);
  
         //mix all audio frame to one audio frame
         pMixData = new unsigned char[uiMixDataSize];
+        memset(pMixData, 0, uiMixDataSize);
+        //int iPerPackLen = 4;
         int iPerPackLen = pADFLeading->tMediaInfo.audio.nChannel*pADFLeading->tMediaInfo.audio.nBitPerSample/8;
-        MixAudioFrame(pMixData, &uiMixDataSize, lstADFMinor, iPerPackLen);
+        if(0<lstADFMinor.size())
+        {
+            lstADFMinor.push_back(pADFLeading);
+            MixAudioFrame(pMixData, &uiMixDataSize, lstADFMinor, iPerPackLen);
+        }
+        else
+        {
+            memcpy(pMixData, pADFLeading->pDecData, pADFLeading->uiDecDataPos); 
+            uiMixDataSize = pADFLeading->uiDecDataPos;            
+        }
          
         //encode the mixed audio frame
         uint32_t uiEncOutSize=uiMixDataSize;
@@ -606,7 +615,7 @@ namespace MediaCloud
                 }
             }
         
-            log_info(g_pLogHelper, "mix a audio frame. sessionid:%s identity:%d fid:%d leading_ts:%u minorcounts:%u", m_strSessionID.c_str(), 
+            log_info(g_pLogHelper, "mix audio frame. sessionid:%s identity:%d fid:%d leading_ts:%u minorcounts:%u", m_strSessionID.c_str(), 
                                  pAudioNetFrameLeading->uiIdentity, pAudioNetFrameLeading->tMediaInfo.frameId, pAudioNetFrameLeading->uiTimeStamp, lstAudioDecFrame.size());
             MixAudioFrameAndSend(pAudioNetFrameLeading, lstAudioDecFrame);
             ReleaseAudioNetFrame(pAudioNetFrameLeading); 
@@ -720,7 +729,7 @@ namespace MediaCloud
                 }
             }
             
-            log_info(g_pLogHelper, "mix a video frame. sessionid:%s leading_ts:%u fid:%d minorcounts:%u", m_strSessionID.c_str(), 
+            log_info(g_pLogHelper, "mix video frame. sessionid:%s leading_ts:%u fid:%d minorcounts:%u", m_strSessionID.c_str(), 
                 pVideoNetFrameLeading->uiTimeStamp, pVideoNetFrameLeading->tMediaInfo.frameId, lstVideoDecFrame.size() );
 
             MixVideoFrameAndSend(pVideoNetFrameLeading, lstVideoDecFrame);

@@ -123,7 +123,7 @@ namespace MediaCloud
                 return -1;
             }
             //the url need get the value from beaninsession's conf 
-            if(!pMixer->CreateRtmpAgent("rtmp://101.201.146.134/hulu/wlj_test"))
+            if(!pMixer->CreateRtmpAgent("rtmp://101.201.146.134/hulu/wlj_test1"))
             {
                 log_err(g_pLogHelper, "create rtmp agent failed sessionid:%s rtmpaddr:%s", 
                                 GUIDToString(*((T_GUID*)pUserJoinMsg->sessionID)).c_str(), "rtmp://101.201.146.134/hulu/wlj_test.flv");
